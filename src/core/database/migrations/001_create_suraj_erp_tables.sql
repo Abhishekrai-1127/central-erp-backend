@@ -1,4 +1,4 @@
--- PostgreSQL Migration: Suraj ERP Core, CRM, Sales, Purchase & Inventory Tables
+-- PostgreSQL Migration: Suraj ERP Complete Core Tables
 
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
@@ -177,4 +177,59 @@ CREATE TABLE IF NOT EXISTS inventory_movements (
     reference_no VARCHAR(100),
     date_time TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     created_by_user VARCHAR(255)
+);
+
+-- 12. Finance Accounts Table
+CREATE TABLE IF NOT EXISTS finance_accounts (
+    id VARCHAR(100) PRIMARY KEY DEFAULT ('ACC-' || SUBSTRING(gen_random_uuid()::text, 1, 8)),
+    account_code VARCHAR(50) UNIQUE NOT NULL,
+    account_name VARCHAR(255) NOT NULL,
+    account_type VARCHAR(50) NOT NULL,
+    balance NUMERIC(15,2) DEFAULT 0.00,
+    currency VARCHAR(10) DEFAULT 'INR',
+    is_deleted BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 13. Finance Vouchers Table
+CREATE TABLE IF NOT EXISTS finance_vouchers (
+    id VARCHAR(100) PRIMARY KEY DEFAULT ('VOUCH-' || SUBSTRING(gen_random_uuid()::text, 1, 8)),
+    voucher_no VARCHAR(100) UNIQUE NOT NULL,
+    type VARCHAR(50) NOT NULL,
+    date DATE NOT NULL DEFAULT CURRENT_DATE,
+    amount NUMERIC(15,2) DEFAULT 0.00,
+    debit_account VARCHAR(255) NOT NULL,
+    credit_account VARCHAR(255) NOT NULL,
+    narration TEXT,
+    status VARCHAR(50) DEFAULT 'POSTED',
+    is_deleted BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 14. Manufacturing BOMs Table
+CREATE TABLE IF NOT EXISTS manufacturing_boms (
+    id VARCHAR(100) PRIMARY KEY DEFAULT ('BOM-' || SUBSTRING(gen_random_uuid()::text, 1, 8)),
+    bom_no VARCHAR(100) UNIQUE NOT NULL,
+    product_name VARCHAR(255) NOT NULL,
+    sku VARCHAR(100) NOT NULL,
+    components JSONB NOT NULL DEFAULT '[]'::jsonb,
+    total_cost NUMERIC(15,2) DEFAULT 0.00,
+    is_deleted BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 15. Manufacturing Work Orders Table
+CREATE TABLE IF NOT EXISTS manufacturing_work_orders (
+    id VARCHAR(100) PRIMARY KEY DEFAULT ('WO-' || SUBSTRING(gen_random_uuid()::text, 1, 8)),
+    work_order_no VARCHAR(100) UNIQUE NOT NULL,
+    product_name VARCHAR(255) NOT NULL,
+    sku VARCHAR(100) NOT NULL,
+    target_qty INT NOT NULL,
+    completed_qty INT DEFAULT 0,
+    start_date DATE DEFAULT CURRENT_DATE,
+    target_date DATE,
+    status VARCHAR(50) DEFAULT 'PLANNED',
+    is_deleted BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );

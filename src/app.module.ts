@@ -20,6 +20,7 @@ import { PurchaseModule } from './modules/purchase/purchase.module';
 import { OrganizationsModule } from './modules/organizations/organizations.module';
 import { InventoryModule } from './modules/inventory/inventory.module';
 import { FinanceModule } from './modules/finance/finance.module';
+import { ManufacturingModule } from './modules/manufacturing/manufacturing.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { FinanceModule } from './modules/finance/finance.module';
     OrganizationsModule,
     InventoryModule,
     FinanceModule,
+    ManufacturingModule,
   ],
   controllers: [AppController],
   providers: [
