@@ -1,4 +1,4 @@
--- PostgreSQL Migration: Suraj ERP Core & CRM Tables
+-- PostgreSQL Migration: Suraj ERP Core, CRM & Sales Tables
 
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
@@ -96,4 +96,29 @@ CREATE TABLE IF NOT EXISTS crm_activities (
     notes TEXT NOT NULL,
     created_by_name VARCHAR(255),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 8. Sales Documents Table
+CREATE TABLE IF NOT EXISTS sales_documents (
+    id VARCHAR(100) PRIMARY KEY DEFAULT ('INV-' || SUBSTRING(gen_random_uuid()::text, 1, 8)),
+    ref_no VARCHAR(100) NOT NULL,
+    type VARCHAR(50) NOT NULL DEFAULT 'invoice',
+    sales_order_no VARCHAR(100),
+    po_number VARCHAR(100),
+    date DATE NOT NULL DEFAULT CURRENT_DATE,
+    status VARCHAR(50) NOT NULL DEFAULT 'DRAFT',
+    customer VARCHAR(255) NOT NULL,
+    customer_id VARCHAR(100),
+    gstin VARCHAR(50),
+    place_of_supply VARCHAR(100),
+    items JSONB NOT NULL DEFAULT '[]'::jsonb,
+    subtotal NUMERIC(15,2) DEFAULT 0.00,
+    tax_total NUMERIC(15,2) DEFAULT 0.00,
+    cgst_amount NUMERIC(15,2) DEFAULT 0.00,
+    sgst_amount NUMERIC(15,2) DEFAULT 0.00,
+    igst_amount NUMERIC(15,2) DEFAULT 0.00,
+    grand_total NUMERIC(15,2) DEFAULT 0.00,
+    is_deleted BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
