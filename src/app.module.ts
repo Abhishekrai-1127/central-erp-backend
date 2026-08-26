@@ -14,6 +14,7 @@ import { LoggingInterceptor } from './core/interceptors/logging.interceptor';
 import { HealthModule } from './modules/health/health.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
+import { CrmModule } from './modules/crm/crm.module';
 import { OrganizationsModule } from './modules/organizations/organizations.module';
 import { InventoryModule } from './modules/inventory/inventory.module';
 import { SalesModule } from './modules/sales/sales.module';
@@ -26,6 +27,7 @@ import { FinanceModule } from './modules/finance/finance.module';
     HealthModule,
     AuthModule,
     UsersModule,
+    CrmModule,
     OrganizationsModule,
     InventoryModule,
     SalesModule,

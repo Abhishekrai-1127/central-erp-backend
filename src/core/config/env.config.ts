@@ -7,10 +7,11 @@ export default () => ({
     expiresIn: process.env.JWT_EXPIRES_IN || '1d',
   },
   database: {
-    host: process.env.DB_HOST || 'localhost',
+    url: process.env.DATABASE_URL || 'postgresql://postgres:iu43TFr2xeEJE4rzO555bzZZ+XpCvaKCFq+VRaMO+t8=@100.99.17.37:5432/postgres',
+    host: process.env.DB_HOST || '100.99.17.37',
     port: parseInt(process.env.DB_PORT || '5432', 10),
     username: process.env.DB_USERNAME || 'postgres',
-    password: process.env.DB_PASSWORD || 'postgres',
-    name: process.env.DB_NAME || 'central_erp',
+    password: process.env.DB_PASSWORD || 'iu43TFr2xeEJE4rzO555bzZZ+XpCvaKCFq+VRaMO+t8=',
+    name: process.env.DB_NAME || 'postgres',
   },
 });

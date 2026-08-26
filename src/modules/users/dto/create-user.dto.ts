@@ -19,8 +19,13 @@ export class CreateUserDto {
   @MinLength(6)
   password: string;
 
-  @ApiPropertyOptional({ enum: UserRole, default: UserRole.EMPLOYEE })
+  @ApiPropertyOptional({ enum: UserRole, default: UserRole.SALES_REP })
   @IsEnum(UserRole)
   @IsOptional()
   role?: UserRole;
+
+  @ApiPropertyOptional({ example: '+91 98765 43210' })
+  @IsString()
+  @IsOptional()
+  phone?: string;
 }

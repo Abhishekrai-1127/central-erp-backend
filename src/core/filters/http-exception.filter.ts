@@ -25,11 +25,35 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const exceptionResponse =
       exception instanceof HttpException ? exception.getResponse() : null;
 
-    let message: string | object = 'Internal server error';
+    let message = 'An unexpected error occurred';
+    let errorCode = this.getErrorCode(status);
+    let details: Array<{ field?: string; issue: string }> = [];
 
     if (typeof exceptionResponse === 'object' && exceptionResponse !== null) {
       const respObj = exceptionResponse as Record<string, any>;
-      message = respObj.message || respObj.error || exceptionResponse;
+      
+      if (respObj.message) {
+        if (Array.isArray(respObj.message)) {
+          message = 'Validation failed / Resource constraint error';
+          errorCode = 'INVALID_INPUT';
+          details = respObj.message.map((msg: string) => {
+            const firstWord = msg.split(' ')[0];
+            return {
+              field: firstWord.toLowerCase() !== 'invalid' ? firstWord : undefined,
+              issue: msg,
+            };
+          });
+        } else {
+          message = respObj.message;
+        }
+      }
+
+      if (respObj.code) {
+        errorCode = respObj.code;
+      }
+      if (respObj.details && Array.isArray(respObj.details)) {
+        details = respObj.details;
+      }
     } else if (typeof exceptionResponse === 'string') {
       message = exceptionResponse;
     } else if (exception instanceof Error) {
@@ -43,16 +67,34 @@ export class HttpExceptionFilter implements ExceptionFilter {
       );
     } else {
       this.logger.warn(
-        `[${request.method}] ${request.url} - ${status}: ${JSON.stringify(message)}`,
+        `[${request.method}] ${request.url} - ${status}: ${message}`,
       );
     }
 
     response.status(status).json({
       success: false,
-      statusCode: status,
-      path: request.url,
-      timestamp: new Date().toISOString(),
-      error: message,
+      message,
+      error: {
+        code: errorCode,
+        details: details.length > 0 ? details : [{ issue: message }],
+      },
     });
+  }
+
+  private getErrorCode(status: number): string {
+    switch (status) {
+      case HttpStatus.BAD_REQUEST:
+        return 'INVALID_INPUT';
+      case HttpStatus.UNAUTHORIZED:
+        return 'UNAUTHORIZED';
+      case HttpStatus.FORBIDDEN:
+        return 'FORBIDDEN';
+      case HttpStatus.NOT_FOUND:
+        return 'NOT_FOUND';
+      case HttpStatus.UNPROCESSABLE_ENTITY:
+        return 'UNPROCESSABLE_ENTITY';
+      default:
+        return 'INTERNAL_SERVER_ERROR';
+    }
   }
 }
