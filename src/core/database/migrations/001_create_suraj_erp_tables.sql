@@ -1,4 +1,4 @@
--- PostgreSQL Migration: Suraj ERP Core, CRM, Sales & Purchase Tables
+-- PostgreSQL Migration: Suraj ERP Core, CRM, Sales, Purchase & Inventory Tables
 
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
@@ -146,4 +146,35 @@ CREATE TABLE IF NOT EXISTS purchase_records (
     is_deleted BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 10. Inventory Products Table
+CREATE TABLE IF NOT EXISTS inventory_products (
+    id VARCHAR(100) PRIMARY KEY DEFAULT ('PROD-' || SUBSTRING(gen_random_uuid()::text, 1, 8)),
+    name VARCHAR(255) NOT NULL,
+    sku VARCHAR(100) NOT NULL UNIQUE,
+    category VARCHAR(100) NOT NULL,
+    warehouse VARCHAR(255) DEFAULT 'Suraj Main Factory Warehouse (Bay A)',
+    stock INT DEFAULT 0,
+    min_reorder INT DEFAULT 10,
+    unit_price NUMERIC(15,2) DEFAULT 0.00,
+    unit VARCHAR(50) DEFAULT 'Units',
+    status VARCHAR(50) DEFAULT 'IN STOCK',
+    is_deleted BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 11. Inventory Stock Movement Audit Logs Table
+CREATE TABLE IF NOT EXISTS inventory_movements (
+    id VARCHAR(100) PRIMARY KEY DEFAULT ('MOV-' || SUBSTRING(gen_random_uuid()::text, 1, 8)),
+    product_id VARCHAR(100) REFERENCES inventory_products(id) ON DELETE CASCADE,
+    product_name VARCHAR(255) NOT NULL,
+    sku VARCHAR(100) NOT NULL,
+    type VARCHAR(50) NOT NULL,
+    quantity VARCHAR(50) NOT NULL,
+    numeric_quantity INT NOT NULL,
+    reference_no VARCHAR(100),
+    date_time TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    created_by_user VARCHAR(255)
 );
