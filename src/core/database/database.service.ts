@@ -13,7 +13,7 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
     const dbConfig = this.configService.get('database');
     const connectionString = dbConfig?.url || process.env.DATABASE_URL;
 
-    if (connectionString) {
+    if (connectionString && connectionString.trim() !== '') {
       this.logger.log('Initializing PostgreSQL Pool with connectionString');
       this.pool = new Pool({
         connectionString,
@@ -23,9 +23,9 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
       this.pool = new Pool({
         host: dbConfig?.host || process.env.DB_HOST || 'localhost',
         port: dbConfig?.port || parseInt(process.env.DB_PORT || '5432', 10),
-        user: dbConfig?.username || process.env.DB_USER || 'postgres',
+        user: dbConfig?.username || process.env.DB_USERNAME || process.env.DB_USER || 'postgres',
         password: dbConfig?.password || process.env.DB_PASSWORD || 'postgres',
-        database: dbConfig?.name || process.env.DB_NAME || 'central_erp',
+        database: dbConfig?.name || process.env.DB_NAME || 'postgres',
       });
     }
 
