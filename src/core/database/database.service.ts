@@ -161,6 +161,31 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
             updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
         );
       `);
+      await this.pool.query(`
+        CREATE TABLE IF NOT EXISTS purchase_records (
+            id VARCHAR(100) PRIMARY KEY DEFAULT ('PUR-' || SUBSTRING(gen_random_uuid()::text, 1, 8)),
+            ref_no VARCHAR(100),
+            type VARCHAR(50) NOT NULL DEFAULT 'rfo',
+            vendor VARCHAR(255) NOT NULL,
+            vendor_invoice_no VARCHAR(100),
+            request_date DATE,
+            bill_date DATE,
+            due_date DATE,
+            purchase_date DATE,
+            numeric_amount NUMERIC(15,2) DEFAULT 0.00,
+            department VARCHAR(100),
+            priority VARCHAR(50) DEFAULT 'NORMAL',
+            asset_tag VARCHAR(100),
+            name VARCHAR(255),
+            model VARCHAR(255),
+            numeric_cost NUMERIC(15,2) DEFAULT 0.00,
+            location VARCHAR(255),
+            status VARCHAR(50) NOT NULL DEFAULT 'PENDING',
+            is_deleted BOOLEAN DEFAULT FALSE,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+        );
+      `);
       this.logger.log('Database tables successfully verified/created.');
     } catch (err: any) {
       this.logger.warn(`Could not verify/create tables automatically: ${err.message}`);
