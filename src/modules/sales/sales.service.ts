@@ -198,6 +198,36 @@ export class SalesService {
       ],
     );
 
+    // AUTOMATED STOCK TRIGGER: Auto-dispatch inventory if sales invoice is created
+    if (dto.type === SalesDocType.INVOICE && Array.isArray(dto.items)) {
+      for (const item of dto.items) {
+        if (item.productId && item.qty) {
+          try {
+            await this.db.query(
+              `UPDATE inventory_products SET stock = GREATEST(0, stock - $1), updated_at = NOW() WHERE id = $2`,
+              [item.qty, item.productId],
+            );
+            await this.db.query(
+              `INSERT INTO inventory_movements (product_id, product_name, sku, type, quantity, numeric_quantity, reference_no, created_by_user)
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+              [
+                item.productId,
+                item.description || 'Invoice Product Item',
+                item.sku || 'N/A',
+                'STOCK OUT',
+                `-${item.qty} Units`,
+                item.qty,
+                dto.refNo || 'SALES_INVOICE',
+                'Automated System Trigger',
+              ],
+            );
+          } catch (err: any) {
+            this.logger.warn(`Failed auto stock trigger for item ${item.productId}: ${err.message}`);
+          }
+        }
+      }
+    }
+
     const row = res.rows[0];
     return {
       ...row,

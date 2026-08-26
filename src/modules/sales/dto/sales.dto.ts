@@ -29,6 +29,16 @@ export enum SalesDocStatus {
 }
 
 export class LineItemDto {
+  @ApiPropertyOptional({ example: 'PROD-001' })
+  @IsString()
+  @IsOptional()
+  productId?: string;
+
+  @ApiPropertyOptional({ example: 'IG-1200-BL' })
+  @IsString()
+  @IsOptional()
+  sku?: string;
+
   @ApiProperty({ example: '40 H.P. High Pressure Blower 2880 RPM 3700 CFM' })
   @IsString()
   @IsNotEmpty()
