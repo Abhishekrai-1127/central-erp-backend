@@ -10,8 +10,8 @@ export default () => ({
     url: process.env.DATABASE_URL || '',
     host: process.env.DB_HOST || '100.99.17.37',
     port: parseInt(process.env.DB_PORT || '5432', 10),
-    username: process.env.DB_USERNAME || 'crm_user',
+    username: process.env.DB_USERNAME || '',
     password: process.env.DB_PASSWORD || '',
-    name: process.env.DB_NAME || 'crm',
+    name: process.env.DB_NAME || '',
   },
 });

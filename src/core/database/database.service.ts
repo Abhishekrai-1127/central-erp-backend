@@ -19,13 +19,18 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
         connectionString,
       });
     } else {
-      this.logger.log('Initializing PostgreSQL Pool with discrete connection params');
+      const host = dbConfig?.host || process.env.DB_HOST || '100.99.17.37';
+      const port = dbConfig?.port || parseInt(process.env.DB_PORT || '5432', 10);
+      const user = dbConfig?.username || process.env.DB_USERNAME || process.env.DB_USER;
+      const password = dbConfig?.password || process.env.DB_PASSWORD;
+      const database = dbConfig?.name || process.env.DB_NAME;
+
       this.pool = new Pool({
-        host: dbConfig?.host || process.env.DB_HOST || 'localhost',
-        port: dbConfig?.port || parseInt(process.env.DB_PORT || '5432', 10),
-        user: dbConfig?.username || process.env.DB_USERNAME || process.env.DB_USER || 'postgres',
-        password: dbConfig?.password || process.env.DB_PASSWORD || 'postgres',
-        database: dbConfig?.name || process.env.DB_NAME || 'postgres',
+        host,
+        port,
+        user,
+        password,
+        database,
       });
     }
 
