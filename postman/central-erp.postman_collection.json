@@ -1,0 +1,1203 @@
+{
+	"info": {
+		"_postman_id": "c1a9f0e2-96b5-4b3f-b883-9b2f6ef539d4",
+		"name": "Central ERP Backend API",
+		"description": "Complete Postman collection for Central ERP Backend API. Includes authentication, user management, admin, CRM, sales, purchase, inventory, manufacturing, finance, and health check endpoints.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{token}}",
+				"type": "string"
+			}
+		]
+	},
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:3000/api/v1",
+			"type": "string"
+		},
+		{
+			"key": "token",
+			"value": "",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "Authentication",
+			"item": [
+				{
+					"name": "Register",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Admin User\",\n  \"email\": \"admin@erp.com\",\n  \"password\": \"Admin@123456\",\n  \"role\": \"ADMIN\",\n  \"phone\": \"+1234567890\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/register",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "register"]
+						},
+						"description": "Register a new user in the Central ERP system."
+					},
+					"response": []
+				},
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"var token = jsonData.token || (jsonData.data && jsonData.data.token) || (jsonData.data && jsonData.data.accessToken) || jsonData.accessToken;",
+									"if (token) {",
+									"    pm.environment.set('token', token);",
+									"    pm.collectionVariables.set('token', token);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/login",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "login"]
+						},
+						"description": "Authenticate user and receive access + refresh tokens. Automatically sets the `token` collection variable."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Profile (Me)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/auth/me",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "me"]
+						},
+						"description": "Get current logged-in user profile details."
+					},
+					"response": []
+				},
+				{
+					"name": "Refresh Token",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"refreshToken\": \"YOUR_REFRESH_TOKEN_HERE\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/refresh",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "refresh"]
+						},
+						"description": "Obtain a fresh access token using a valid refresh token."
+					},
+					"response": []
+				},
+				{
+					"name": "Logout",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"refreshToken\": \"YOUR_REFRESH_TOKEN_HERE\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/logout",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "logout"]
+						},
+						"description": "Revoke refresh token and invalidate current session."
+					},
+					"response": []
+				},
+				{
+					"name": "Change Password",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"currentPassword\": \"Admin@123456\",\n  \"newPassword\": \"Admin@NewPassword123\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/change-password",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "change-password"]
+						},
+						"description": "Change password for authenticated user."
+					},
+					"response": []
+				},
+				{
+					"name": "Forgot Password",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"admin@erp.com\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/forgot-password",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "forgot-password"]
+						},
+						"description": "Request password reset email."
+					},
+					"response": []
+				},
+				{
+					"name": "Reset Password",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"token\": \"RESET_TOKEN_HERE\",\n  \"newPassword\": \"Admin@NewPassword123\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/reset-password",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "reset-password"]
+						},
+						"description": "Reset password using token received via email."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Users",
+			"item": [
+				{
+					"name": "List Users",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/users?role=ADMIN&status=ACTIVE&page=1&limit=20",
+							"host": ["{{baseUrl}}"],
+							"path": ["users"],
+							"query": [
+								{ "key": "role", "value": "ADMIN" },
+								{ "key": "status", "value": "ACTIVE" },
+								{ "key": "search", "value": "", "disabled": true },
+								{ "key": "page", "value": "1" },
+								{ "key": "limit", "value": "20" }
+							]
+						},
+						"description": "Get paginated system users with optional filters."
+					},
+					"response": []
+				},
+				{
+					"name": "Get User By ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/users/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["users", ":id"],
+							"variable": [
+								{ "key": "id", "value": "1" }
+							]
+						},
+						"description": "Retrieve user details by ID."
+					},
+					"response": []
+				},
+				{
+					"name": "Update User",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Updated Admin Name\",\n  \"role\": \"ADMIN\",\n  \"status\": \"ACTIVE\",\n  \"phone\": \"+1987654321\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/users/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["users", ":id"],
+							"variable": [
+								{ "key": "id", "value": "1" }
+							]
+						},
+						"description": "Update user details, status, or role."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Admin",
+			"item": [
+				{
+					"name": "View Trash (Soft-Deleted Records)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/admin/trash",
+							"host": ["{{baseUrl}}"],
+							"path": ["admin", "trash"]
+						},
+						"description": "Retrieve all soft-deleted records across the entire ERP system."
+					},
+					"response": []
+				},
+				{
+					"name": "Restore Soft-Deleted Record",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/admin/restore/:entityType/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["admin", "restore", ":entityType", ":id"],
+							"variable": [
+								{ "key": "entityType", "value": "customers" },
+								{ "key": "id", "value": "1" }
+							]
+						},
+						"description": "Restore a soft-deleted record back to active state."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Organizations",
+			"item": [
+				{
+					"name": "List Organizations",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/organizations",
+							"host": ["{{baseUrl}}"],
+							"path": ["organizations"]
+						},
+						"description": "List all registered ERP organization branches."
+					},
+					"response": []
+				},
+				{
+					"name": "Create Organization",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Headquarters Mumbai\",\n  \"code\": \"HQ-MUM\",\n  \"gstin\": \"27AAAAA0000A1Z5\",\n  \"address\": \"123 Business Park, Mumbai\",\n  \"currency\": \"INR\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/organizations",
+							"host": ["{{baseUrl}}"],
+							"path": ["organizations"]
+						},
+						"description": "Create a new organization / branch."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "CRM",
+			"item": [
+				{
+					"name": "List Customers / Vendors",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/crm/customers?type=Customer&status=Active&page=1&limit=20",
+							"host": ["{{baseUrl}}"],
+							"path": ["crm", "customers"],
+							"query": [
+								{ "key": "type", "value": "Customer" },
+								{ "key": "status", "value": "Active" },
+								{ "key": "search", "value": "", "disabled": true },
+								{ "key": "page", "value": "1" },
+								{ "key": "limit", "value": "20" }
+							]
+						},
+						"description": "Fetch customer and vendor records."
+					},
+					"response": []
+				},
+				{
+					"name": "Create Customer / Vendor",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Acme Corporation\",\n  \"type\": \"Customer\",\n  \"email\": \"contact@acme.com\",\n  \"phone\": \"+1234567890\",\n  \"address\": \"456 Industrial Zone\",\n  \"gstin\": \"27ABCDE1234F1Z5\",\n  \"creditLimit\": 50000,\n  \"paymentTerms\": \"Net 30\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/crm/customers",
+							"host": ["{{baseUrl}}"],
+							"path": ["crm", "customers"]
+						},
+						"description": "Create a new customer or vendor party record."
+					},
+					"response": []
+				},
+				{
+					"name": "Update Customer / Vendor",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Acme Corp Global\",\n  \"creditLimit\": 75000,\n  \"status\": \"Active\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/crm/customers/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["crm", "customers", ":id"],
+							"variable": [
+								{ "key": "id", "value": "1" }
+							]
+						},
+						"description": "Update customer details and credit terms."
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Customer",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/crm/customers/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["crm", "customers", ":id"],
+							"variable": [
+								{ "key": "id", "value": "1" }
+							]
+						},
+						"description": "Soft-delete a customer record."
+					},
+					"response": []
+				},
+				{
+					"name": "List Leads",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/crm/leads?stage=Qualified&page=1&limit=20",
+							"host": ["{{baseUrl}}"],
+							"path": ["crm", "leads"],
+							"query": [
+								{ "key": "stage", "value": "Qualified" },
+								{ "key": "search", "value": "", "disabled": true },
+								{ "key": "page", "value": "1" },
+								{ "key": "limit", "value": "20" }
+							]
+						},
+						"description": "List CRM prospect leads."
+					},
+					"response": []
+				},
+				{
+					"name": "Create Lead",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"John Doe\",\n  \"company\": \"Apex Innovations\",\n  \"email\": \"johndoe@apex.com\",\n  \"phone\": \"+1122334455\",\n  \"stage\": \"Lead\",\n  \"source\": \"Website\",\n  \"estimatedValue\": 25000\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/crm/leads",
+							"host": ["{{baseUrl}}"],
+							"path": ["crm", "leads"]
+						},
+						"description": "Create a new sales lead."
+					},
+					"response": []
+				},
+				{
+					"name": "Update Lead",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"stage\": \"Qualified\",\n  \"estimatedValue\": 30000\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/crm/leads/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["crm", "leads", ":id"],
+							"variable": [
+								{ "key": "id", "value": "1" }
+							]
+						},
+						"description": "Update lead pipeline stage and notes."
+					},
+					"response": []
+				},
+				{
+					"name": "List Deals",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/crm/deals?stage=Proposal",
+							"host": ["{{baseUrl}}"],
+							"path": ["crm", "deals"],
+							"query": [
+								{ "key": "stage", "value": "Proposal" },
+								{ "key": "customerId", "value": "", "disabled": true }
+							]
+						},
+						"description": "List CRM opportunity deals."
+					},
+					"response": []
+				},
+				{
+					"name": "Create Deal",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"Q3 Supply Contract\",\n  \"customerId\": 1,\n  \"amount\": 80000,\n  \"stage\": \"Proposal\",\n  \"expectedCloseDate\": \"2026-09-30\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/crm/deals",
+							"host": ["{{baseUrl}}"],
+							"path": ["crm", "deals"]
+						},
+						"description": "Create a new sales deal."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Activities",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/crm/activities?entityId=1",
+							"host": ["{{baseUrl}}"],
+							"path": ["crm", "activities"],
+							"query": [
+								{ "key": "entityId", "value": "1" }
+							]
+						},
+						"description": "Fetch timeline activities (calls, meetings, notes) for a customer or lead."
+					},
+					"response": []
+				},
+				{
+					"name": "Log Activity",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"entityType\": \"Customer\",\n  \"entityId\": 1,\n  \"type\": \"Call\",\n  \"summary\": \"Discussed product pricing and discount structure.\",\n  \"dueDate\": \"2026-09-05\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/crm/activities",
+							"host": ["{{baseUrl}}"],
+							"path": ["crm", "activities"]
+						},
+						"description": "Log an interaction note or schedule an activity."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Sales",
+			"item": [
+				{
+					"name": "List Sales Documents",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/sales/documents?docType=sales_order&status=draft&page=1&limit=20",
+							"host": ["{{baseUrl}}"],
+							"path": ["sales", "documents"],
+							"query": [
+								{ "key": "docType", "value": "sales_order" },
+								{ "key": "status", "value": "draft" },
+								{ "key": "customerId", "value": "", "disabled": true },
+								{ "key": "page", "value": "1" },
+								{ "key": "limit", "value": "20" }
+							]
+						},
+						"description": "Fetch sales documents (quotations, sales orders, invoices, delivery challans, payment receipts)."
+					},
+					"response": []
+				},
+				{
+					"name": "Check Invoice Exists",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/sales/check-invoice-exists?salesOrderNo=SO-2026-001",
+							"host": ["{{baseUrl}}"],
+							"path": ["sales", "check-invoice-exists"],
+							"query": [
+								{ "key": "salesOrderNo", "value": "SO-2026-001" }
+							]
+						},
+						"description": "Check if an invoice has already been generated for a specific Sales Order."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Sales Document By ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/sales/documents/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["sales", "documents", ":id"],
+							"variable": [
+								{ "key": "id", "value": "1" }
+							]
+						},
+						"description": "Get sales document details and line items."
+					},
+					"response": []
+				},
+				{
+					"name": "Create Sales Document",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"docType\": \"sales_order\",\n  \"docNumber\": \"SO-2026-001\",\n  \"customerId\": 1,\n  \"docDate\": \"2026-08-31\",\n  \"status\": \"draft\",\n  \"items\": [\n    {\n      \"productId\": 1,\n      \"description\": \"Precision Gearbox\",\n      \"quantity\": 10,\n      \"unitPrice\": 1500,\n      \"taxRate\": 18\n    }\n  ],\n  \"paymentTerms\": \"Net 30\",\n  \"notes\": \"Standard delivery within 14 days\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/sales/documents",
+							"host": ["{{baseUrl}}"],
+							"path": ["sales", "documents"]
+						},
+						"description": "Create a new sales document with line items."
+					},
+					"response": []
+				},
+				{
+					"name": "Update Sales Document",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"confirmed\",\n  \"notes\": \"Confirmed by customer via email.\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/sales/documents/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["sales", "documents", ":id"],
+							"variable": [
+								{ "key": "id", "value": "1" }
+							]
+						},
+						"description": "Update sales document status, metadata, or line items."
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Sales Document",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/sales/documents/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["sales", "documents", ":id"],
+							"variable": [
+								{ "key": "id", "value": "1" }
+							]
+						},
+						"description": "Soft-delete a sales document."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Purchase",
+			"item": [
+				{
+					"name": "List Purchase Records",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/purchase?type=purchase_bill&status=pending&page=1&limit=20",
+							"host": ["{{baseUrl}}"],
+							"path": ["purchase"],
+							"query": [
+								{ "key": "type", "value": "purchase_bill" },
+								{ "key": "status", "value": "pending" },
+								{ "key": "vendorId", "value": "", "disabled": true },
+								{ "key": "page", "value": "1" },
+								{ "key": "limit", "value": "20" }
+							]
+						},
+						"description": "List purchase records (RFOs, vendor bills, machinery assets)."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Purchase Record By ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/purchase/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["purchase", ":id"],
+							"variable": [
+								{ "key": "id", "value": "1" }
+							]
+						},
+						"description": "Get purchase record details."
+					},
+					"response": []
+				},
+				{
+					"name": "Create Purchase Record",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"type\": \"purchase_bill\",\n  \"billNumber\": \"BILL-2026-901\",\n  \"vendorId\": 2,\n  \"billDate\": \"2026-08-31\",\n  \"dueDate\": \"2026-09-30\",\n  \"totalAmount\": 45000,\n  \"taxAmount\": 8100,\n  \"status\": \"pending\",\n  \"items\": [\n    {\n      \"productId\": 1,\n      \"description\": \"Raw Steel Ingot\",\n      \"quantity\": 50,\n      \"unitCost\": 900,\n      \"taxRate\": 18\n    }\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/purchase",
+							"host": ["{{baseUrl}}"],
+							"path": ["purchase"]
+						},
+						"description": "Create a new purchase bill, RFO, or asset purchase."
+					},
+					"response": []
+				},
+				{
+					"name": "Update Purchase Record",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"approved\",\n  \"notes\": \"Approved by procurement manager\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/purchase/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["purchase", ":id"],
+							"variable": [
+								{ "key": "id", "value": "1" }
+							]
+						},
+						"description": "Update purchase record details or status."
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Purchase Record",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/purchase/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["purchase", ":id"],
+							"variable": [
+								{ "key": "id", "value": "1" }
+							]
+						},
+						"description": "Soft-delete a purchase record."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Inventory",
+			"item": [
+				{
+					"name": "List Products",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/inventory/products?search=&category=&page=1&limit=20",
+							"host": ["{{baseUrl}}"],
+							"path": ["inventory", "products"],
+							"query": [
+								{ "key": "search", "value": "" },
+								{ "key": "category", "value": "" },
+								{ "key": "page", "value": "1" },
+								{ "key": "limit", "value": "20" }
+							]
+						},
+						"description": "List inventory products and raw materials."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Product By ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/inventory/products/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["inventory", "products", ":id"],
+							"variable": [
+								{ "key": "id", "value": "1" }
+							]
+						},
+						"description": "Fetch inventory product details by ID."
+					},
+					"response": []
+				},
+				{
+					"name": "Create Product",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"sku\": \"PRD-GEAR-001\",\n  \"name\": \"Precision Gear Module 4\",\n  \"category\": \"Mechanical\",\n  \"unit\": \"PCS\",\n  \"costPrice\": 1200,\n  \"sellingPrice\": 1800,\n  \"reorderLevel\": 15,\n  \"warehouseLocation\": \"Bay-B2-Rack4\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/inventory/products",
+							"host": ["{{baseUrl}}"],
+							"path": ["inventory", "products"]
+						},
+						"description": "Add new inventory item / raw material."
+					},
+					"response": []
+				},
+				{
+					"name": "Update Product",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"sellingPrice\": 1950,\n  \"reorderLevel\": 20,\n  \"warehouseLocation\": \"Bay-B2-Rack5\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/inventory/products/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["inventory", "products", ":id"],
+							"variable": [
+								{ "key": "id", "value": "1" }
+							]
+						},
+						"description": "Update product pricing, stock reorder levels, or location."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Stock Movements",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/inventory/movements",
+							"host": ["{{baseUrl}}"],
+							"path": ["inventory", "movements"]
+						},
+						"description": "Fetch chronological stock movement audit history."
+					},
+					"response": []
+				},
+				{
+					"name": "Receive Stock (Inward)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"productId\": 1,\n  \"quantity\": 25,\n  \"reference\": \"PO-2026-440\",\n  \"notes\": \"Received from Supplier batch #998\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/inventory/receive-stock",
+							"host": ["{{baseUrl}}"],
+							"path": ["inventory", "receive-stock"]
+						},
+						"description": "Increment product stock count and create an audit log entry."
+					},
+					"response": []
+				},
+				{
+					"name": "Dispatch Stock (Outward)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"productId\": 1,\n  \"quantity\": 5,\n  \"reference\": \"DC-2026-102\",\n  \"notes\": \"Dispatched for Sales Order SO-2026-001\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/inventory/dispatch-stock",
+							"host": ["{{baseUrl}}"],
+							"path": ["inventory", "dispatch-stock"]
+						},
+						"description": "Decrement product stock count and create an audit log entry."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Manufacturing",
+			"item": [
+				{
+					"name": "List BOMs",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/manufacturing/bom",
+							"host": ["{{baseUrl}}"],
+							"path": ["manufacturing", "bom"]
+						},
+						"description": "Fetch Bill of Materials (BOM) for finished products."
+					},
+					"response": []
+				},
+				{
+					"name": "Create BOM",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"finishedProductId\": 1,\n  \"bomCode\": \"BOM-GEARBOX-V1\",\n  \"items\": [\n    {\n      \"componentProductId\": 2,\n      \"quantity\": 4,\n      \"unit\": \"PCS\"\n    },\n    {\n      \"componentProductId\": 3,\n      \"quantity\": 1,\n      \"unit\": \"PCS\"\n    }\n  ],\n  \"laborHours\": 3.5,\n  \"overheadCost\": 450\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/manufacturing/bom",
+							"host": ["{{baseUrl}}"],
+							"path": ["manufacturing", "bom"]
+						},
+						"description": "Create a new Bill of Materials recipe."
+					},
+					"response": []
+				},
+				{
+					"name": "List Work Orders",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/manufacturing/work-orders?status=In%20Progress",
+							"host": ["{{baseUrl}}"],
+							"path": ["manufacturing", "work-orders"],
+							"query": [
+								{ "key": "status", "value": "In Progress" },
+								{ "key": "page", "value": "1", "disabled": true },
+								{ "key": "limit", "value": "20", "disabled": true }
+							]
+						},
+						"description": "List factory production work orders."
+					},
+					"response": []
+				},
+				{
+					"name": "Issue Work Order",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"bomId\": 1,\n  \"orderNumber\": \"WO-2026-550\",\n  \"plannedQuantity\": 50,\n  \"startDate\": \"2026-09-01\",\n  \"targetCompletionDate\": \"2026-09-10\",\n  \"status\": \"Draft\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/manufacturing/work-orders",
+							"host": ["{{baseUrl}}"],
+							"path": ["manufacturing", "work-orders"]
+						},
+						"description": "Issue a new shop floor production work order."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Finance",
+			"item": [
+				{
+					"name": "Chart of Accounts",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/finance/accounts",
+							"host": ["{{baseUrl}}"],
+							"path": ["finance", "accounts"]
+						},
+						"description": "Fetch Chart of Accounts and General Ledger account balances."
+					},
+					"response": []
+				},
+				{
+					"name": "List Vouchers",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/finance/vouchers?voucherType=payment&page=1&limit=20",
+							"host": ["{{baseUrl}}"],
+							"path": ["finance", "vouchers"],
+							"query": [
+								{ "key": "voucherType", "value": "payment" },
+								{ "key": "page", "value": "1" },
+								{ "key": "limit", "value": "20" }
+							]
+						},
+						"description": "List financial vouchers (Journal, Payment, Receipt)."
+					},
+					"response": []
+				},
+				{
+					"name": "Create Voucher",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"voucherType\": \"payment\",\n  \"voucherNumber\": \"VOUCH-2026-01\",\n  \"date\": \"2026-08-31\",\n  \"debitAccountId\": 10,\n  \"creditAccountId\": 1,\n  \"amount\": 15000,\n  \"narration\": \"Paid vendor via NEFT\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/finance/vouchers",
+							"host": ["{{baseUrl}}"],
+							"path": ["finance", "vouchers"]
+						},
+						"description": "Post a double-entry financial voucher."
+					},
+					"response": []
+				},
+				{
+					"name": "Tax Summary (GST / ITC)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/finance/tax-summary",
+							"host": ["{{baseUrl}}"],
+							"path": ["finance", "tax-summary"]
+						},
+						"description": "Fetch aggregated CGST, SGST, IGST output tax liabilities and input tax credits (ITC)."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Health",
+			"item": [
+				{
+					"name": "Health Check",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/health",
+							"host": ["{{baseUrl}}"],
+							"path": ["health"]
+						},
+						"description": "Liveness and readiness health check endpoint."
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}
