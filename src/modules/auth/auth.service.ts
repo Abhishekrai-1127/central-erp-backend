@@ -146,6 +146,7 @@ export class AuthService {
           role: user.role,
           phone: user.phone,
           status: user.status,
+          company_id: user.company_id,
         },
       };
     } catch (err: any) {
