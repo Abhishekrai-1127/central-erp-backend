@@ -1,3 +1,6 @@
+# ================================
+# BUILD STAGE
+# ================================
 FROM node:22-alpine AS builder
 
 WORKDIR /app
@@ -6,13 +9,18 @@ RUN corepack enable
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
-RUN pnpm install --frozen-lockfile --ignore-scripts
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
+    pnpm config set store-dir /pnpm/store && \
+    pnpm install --frozen-lockfile --ignore-scripts
 
 COPY . .
 
 RUN pnpm run build
 
 
+# ================================
+# PRODUCTION STAGE
+# ================================
 FROM node:22-alpine AS production
 
 WORKDIR /app
@@ -21,7 +29,9 @@ RUN corepack enable
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
-RUN pnpm install --frozen-lockfile --prod --ignore-scripts
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
+    pnpm config set store-dir /pnpm/store && \
+    pnpm install --frozen-lockfile --prod --ignore-scripts
 
 COPY --from=builder /app/dist ./dist
 
