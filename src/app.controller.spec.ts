@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
@@ -7,6 +8,7 @@ describe('AppController', () => {
 
   beforeEach(async () => {
     const app: TestingModule = await Test.createTestingModule({
+      imports: [ConfigModule.forRoot()],
       controllers: [AppController],
       providers: [AppService],
     }).compile();
@@ -19,4 +21,15 @@ describe('AppController', () => {
       expect(appController.getHello()).toBe('Hello World!');
     });
   });
+
+  describe('version', () => {
+    it('should return application version details', () => {
+      const versionInfo = appController.getVersion();
+      expect(versionInfo).toBeDefined();
+      expect(versionInfo.version).toBeDefined();
+      expect(versionInfo.environment).toBeDefined();
+      expect(versionInfo.timestamp).toBeDefined();
+    });
+  });
 });
+

@@ -2,6 +2,14 @@ export default () => ({
   port: parseInt(process.env.PORT || '3000', 10),
   nodeEnv: process.env.NODE_ENV || 'development',
   apiPrefix: process.env.API_PREFIX || 'api/v1',
+  app: {
+    name: process.env.APP_NAME || 'central-erp-backend',
+    version: process.env.APP_VERSION || '0.0.1',
+    buildNumber: process.env.BUILD_NUMBER || process.env.BUILD_ID || null,
+    gitCommit: process.env.GIT_COMMIT || process.env.GIT_COMMIT_HASH || process.env.COMMIT_SHA || null,
+    gitBranch: process.env.GIT_BRANCH || process.env.BRANCH_NAME || null,
+    buildTime: process.env.BUILD_TIME || null,
+  },
   jwt: {
     secret: process.env.JWT_SECRET || 'super-secret-erp-key',
     expiresIn: process.env.JWT_EXPIRES_IN || '1d',
@@ -15,3 +23,4 @@ export default () => ({
     name: process.env.DB_NAME || '',
   },
 });
+
