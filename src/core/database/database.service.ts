@@ -89,6 +89,8 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
             status VARCHAR(50) NOT NULL DEFAULT 'Active',
             numeric_outstanding NUMERIC(15,2) DEFAULT 0.00,
             numeric_credit_limit NUMERIC(15,2) DEFAULT 0.00,
+            outstanding TEXT,
+            credit_limit TEXT,
             assigned_rep VARCHAR(255),
             billing_address TEXT,
             shipping_address TEXT,
@@ -97,6 +99,13 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
             created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
         );
+      `);
+      // Existing installations already have this table, so add the newly accepted
+      // frontend display fields without requiring a destructive table rebuild.
+      await this.pool.query(`
+        ALTER TABLE crm_customers
+          ADD COLUMN IF NOT EXISTS outstanding TEXT,
+          ADD COLUMN IF NOT EXISTS credit_limit TEXT;
       `);
       await this.pool.query(`
         CREATE TABLE IF NOT EXISTS crm_leads (

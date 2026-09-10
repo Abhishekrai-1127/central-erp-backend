@@ -71,6 +71,7 @@ export class CrmService {
       `SELECT id, type, name, company, email, phone, gst, category, status,
               numeric_outstanding as "numericOutstanding",
               numeric_credit_limit as "numericCreditLimit",
+              outstanding, credit_limit as "creditLimit",
               assigned_rep as "assignedRep",
               billing_address as "billingAddress",
               shipping_address as "shippingAddress",
@@ -86,8 +87,8 @@ export class CrmService {
       ...row,
       numericOutstanding: Number(row.numericOutstanding || 0),
       numericCreditLimit: Number(row.numericCreditLimit || 0),
-      outstanding: this.formatINR(row.numericOutstanding || 0),
-      creditLimit: this.formatINR(row.numericCreditLimit || 0),
+      outstanding: row.outstanding || this.formatINR(row.numericOutstanding || 0),
+      creditLimit: row.creditLimit || this.formatINR(row.numericCreditLimit || 0),
     }));
 
     return {
@@ -100,12 +101,13 @@ export class CrmService {
     const res = await this.db.query(
       `INSERT INTO crm_customers (
         type, name, company, email, phone, gst, category, status,
-        numeric_outstanding, numeric_credit_limit, assigned_rep,
-        billing_address, shipping_address, notes
-       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+        numeric_outstanding, numeric_credit_limit, outstanding, credit_limit, assigned_rep,
+        billing_address, shipping_address, notes, created_at
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
        RETURNING id, type, name, company, email, phone, gst, category, status,
                  numeric_outstanding as "numericOutstanding",
                  numeric_credit_limit as "numericCreditLimit",
+                 outstanding, credit_limit as "creditLimit",
                  assigned_rep as "assignedRep",
                  billing_address as "billingAddress",
                  shipping_address as "shippingAddress",
@@ -121,10 +123,13 @@ export class CrmService {
         dto.status || 'Active',
         dto.numericOutstanding || 0,
         dto.numericCreditLimit || 0,
+        dto.outstanding || null,
+        dto.creditLimit || null,
         dto.assignedRep || null,
         dto.billingAddress || null,
         dto.shippingAddress || null,
         dto.notes || null,
+        dto.createdAt ? new Date(dto.createdAt) : new Date(),
       ],
     );
 
@@ -133,8 +138,8 @@ export class CrmService {
       ...row,
       numericOutstanding: Number(row.numericOutstanding || 0),
       numericCreditLimit: Number(row.numericCreditLimit || 0),
-      outstanding: this.formatINR(row.numericOutstanding || 0),
-      creditLimit: this.formatINR(row.numericCreditLimit || 0),
+      outstanding: row.outstanding || this.formatINR(row.numericOutstanding || 0),
+      creditLimit: row.creditLimit || this.formatINR(row.numericCreditLimit || 0),
     };
   }
 
@@ -158,6 +163,8 @@ export class CrmService {
     const status = dto.status ?? ex.status;
     const numericOutstanding = dto.numericOutstanding ?? ex.numeric_outstanding;
     const numericCreditLimit = dto.numericCreditLimit ?? ex.numeric_credit_limit;
+    const outstanding = dto.outstanding ?? ex.outstanding;
+    const creditLimit = dto.creditLimit ?? ex.credit_limit;
     const assignedRep = dto.assignedRep ?? ex.assigned_rep;
     const billingAddress = dto.billingAddress ?? ex.billing_address;
     const shippingAddress = dto.shippingAddress ?? ex.shipping_address;
@@ -167,20 +174,22 @@ export class CrmService {
       `UPDATE crm_customers
        SET type = $1, name = $2, company = $3, email = $4, phone = $5, gst = $6,
            category = $7, status = $8, numeric_outstanding = $9, numeric_credit_limit = $10,
-           assigned_rep = $11, billing_address = $12, shipping_address = $13, notes = $14,
-           updated_at = NOW()
-       WHERE id = $15 AND is_deleted = false
+           outstanding = $11, credit_limit = $12, assigned_rep = $13, billing_address = $14,
+           shipping_address = $15, notes = $16, created_at = $17, updated_at = NOW()
+       WHERE id = $18 AND is_deleted = false
        RETURNING id, type, name, company, email, phone, gst, category, status,
                  numeric_outstanding as "numericOutstanding",
                  numeric_credit_limit as "numericCreditLimit",
+                 outstanding, credit_limit as "creditLimit",
                  assigned_rep as "assignedRep",
                  billing_address as "billingAddress",
                  shipping_address as "shippingAddress",
                  notes, created_at as "createdAt"`,
       [
         type, name, company, email, phone, gst, category, status,
-        numericOutstanding, numericCreditLimit, assignedRep,
-        billingAddress, shippingAddress, notes, id,
+        numericOutstanding, numericCreditLimit, outstanding, creditLimit, assignedRep,
+        billingAddress, shippingAddress, notes,
+        dto.createdAt ? new Date(dto.createdAt) : ex.created_at, id,
       ],
     );
 
@@ -189,8 +198,8 @@ export class CrmService {
       ...row,
       numericOutstanding: Number(row.numericOutstanding || 0),
       numericCreditLimit: Number(row.numericCreditLimit || 0),
-      outstanding: this.formatINR(row.numericOutstanding || 0),
-      creditLimit: this.formatINR(row.numericCreditLimit || 0),
+      outstanding: row.outstanding || this.formatINR(row.numericOutstanding || 0),
+      creditLimit: row.creditLimit || this.formatINR(row.numericCreditLimit || 0),
     };
   }
 

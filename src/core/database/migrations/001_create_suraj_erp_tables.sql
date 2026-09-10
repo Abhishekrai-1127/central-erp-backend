@@ -46,6 +46,8 @@ CREATE TABLE IF NOT EXISTS crm_customers (
     status VARCHAR(50) NOT NULL DEFAULT 'Active',
     numeric_outstanding NUMERIC(15,2) DEFAULT 0.00,
     numeric_credit_limit NUMERIC(15,2) DEFAULT 0.00,
+    outstanding TEXT,
+    credit_limit TEXT,
     assigned_rep VARCHAR(255),
     billing_address TEXT,
     shipping_address TEXT,

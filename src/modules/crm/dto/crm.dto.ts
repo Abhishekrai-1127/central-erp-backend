@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEnum, IsNotEmpty, IsNumber, IsOptional, IsString, IsEmail } from 'class-validator';
+import { IsDateString, IsEnum, IsNotEmpty, IsNumber, IsOptional, IsString, IsEmail } from 'class-validator';
 
 export enum PartyType {
   CUSTOMER = 'Customer',
@@ -118,6 +118,21 @@ export class CreateCustomerDto {
   @IsOptional()
   numericCreditLimit?: number;
 
+  @ApiPropertyOptional({ example: '₹42,850.00' })
+  @IsString()
+  @IsOptional()
+  outstanding?: string;
+
+  @ApiPropertyOptional({ example: '₹5,00,000.00' })
+  @IsString()
+  @IsOptional()
+  creditLimit?: string;
+
+  @ApiPropertyOptional({ example: '2026-09-10T18:38:15.061Z' })
+  @IsDateString()
+  @IsOptional()
+  createdAt?: string;
+
   @ApiPropertyOptional({ example: 'Sarah Jenkins' })
   @IsString()
   @IsOptional()
@@ -189,6 +204,21 @@ export class UpdateCustomerDto {
   @IsNumber()
   @IsOptional()
   numericCreditLimit?: number;
+
+  @ApiPropertyOptional({ example: '₹42,850.00' })
+  @IsString()
+  @IsOptional()
+  outstanding?: string;
+
+  @ApiPropertyOptional({ example: '₹5,00,000.00' })
+  @IsString()
+  @IsOptional()
+  creditLimit?: string;
+
+  @ApiPropertyOptional({ example: '2026-09-10T18:38:15.061Z' })
+  @IsDateString()
+  @IsOptional()
+  createdAt?: string;
 
   @ApiPropertyOptional({ example: 'Sarah Jenkins' })
   @IsString()
