@@ -4,12 +4,21 @@ import { ConfigService } from '@nestjs/config';
 import { Public } from '../../common/decorators/public.decorator';
 import * as fs from 'fs';
 import * as path from 'path';
+import { execSync } from 'child_process';
+
+interface BuildMetadata {
+  buildNumber?: string | null;
+  gitCommit?: string | null;
+  gitBranch?: string | null;
+  buildTime?: string | null;
+}
 
 @ApiTags('Health')
 @Controller('health')
 export class HealthController {
   private packageVersion = '0.0.1';
   private packageName = 'central-erp-backend';
+  private fileBuildInfo: BuildMetadata = {};
 
   constructor(private readonly configService: ConfigService) {
     try {
@@ -21,6 +30,54 @@ export class HealthController {
       }
     } catch {
       // Fallback
+    }
+
+    const possibleBuildFiles = [
+      path.join(process.cwd(), 'build-info.json'),
+      path.join(process.cwd(), 'dist', 'build-info.json'),
+      path.join(__dirname, '..', '..', 'build-info.json'),
+    ];
+
+    for (const file of possibleBuildFiles) {
+      try {
+        if (fs.existsSync(file)) {
+          this.fileBuildInfo = JSON.parse(fs.readFileSync(file, 'utf8'));
+          break;
+        }
+      } catch {
+        // Ignore file read error
+      }
+    }
+  }
+
+  private getGitCommit(): string | null {
+    if (this.fileBuildInfo.gitCommit) return this.fileBuildInfo.gitCommit;
+    if (process.env.GIT_COMMIT) return process.env.GIT_COMMIT;
+    if (process.env.GIT_COMMIT_HASH) return process.env.GIT_COMMIT_HASH;
+    if (process.env.COMMIT_SHA) return process.env.COMMIT_SHA;
+    try {
+      return execSync('git rev-parse --short HEAD', {
+        stdio: ['pipe', 'pipe', 'ignore'],
+      })
+        .toString()
+        .trim();
+    } catch {
+      return null;
+    }
+  }
+
+  private getGitBranch(): string | null {
+    if (this.fileBuildInfo.gitBranch) return this.fileBuildInfo.gitBranch;
+    if (process.env.GIT_BRANCH) return process.env.GIT_BRANCH;
+    if (process.env.BRANCH_NAME) return process.env.BRANCH_NAME;
+    try {
+      return execSync('git rev-parse --abbrev-ref HEAD', {
+        stdio: ['pipe', 'pipe', 'ignore'],
+      })
+        .toString()
+        .trim();
+    } catch {
+      return null;
     }
   }
 
@@ -34,22 +91,20 @@ export class HealthController {
       process.env.NODE_ENV ||
       'development';
 
+    const buildNumber =
+      this.fileBuildInfo.buildNumber ||
+      appConfig?.buildNumber ||
+      process.env.BUILD_NUMBER ||
+      process.env.BUILD_ID ||
+      null;
+
     return {
       status: 'ok',
       service: appConfig?.name || this.packageName,
       version: appConfig?.version || this.packageVersion,
       environment: nodeEnv,
-      buildNumber:
-        appConfig?.buildNumber ||
-        process.env.BUILD_NUMBER ||
-        process.env.BUILD_ID ||
-        null,
-      gitCommit:
-        appConfig?.gitCommit ||
-        process.env.GIT_COMMIT ||
-        process.env.GIT_COMMIT_HASH ||
-        process.env.COMMIT_SHA ||
-        null,
+      buildNumber,
+      gitCommit: this.getGitCommit(),
       uptime: Math.floor(process.uptime()),
       timestamp: new Date().toISOString(),
     };
@@ -65,28 +120,28 @@ export class HealthController {
       process.env.NODE_ENV ||
       'development';
 
+    const buildNumber =
+      this.fileBuildInfo.buildNumber ||
+      appConfig?.buildNumber ||
+      process.env.BUILD_NUMBER ||
+      process.env.BUILD_ID ||
+      null;
+
+    const buildTime =
+      this.fileBuildInfo.buildTime ||
+      appConfig?.buildTime ||
+      process.env.BUILD_TIME ||
+      null;
+
     return {
       name: appConfig?.name || this.packageName,
       version: appConfig?.version || this.packageVersion,
       environment: nodeEnv,
       build: {
-        buildNumber:
-          appConfig?.buildNumber ||
-          process.env.BUILD_NUMBER ||
-          process.env.BUILD_ID ||
-          null,
-        gitCommit:
-          appConfig?.gitCommit ||
-          process.env.GIT_COMMIT ||
-          process.env.GIT_COMMIT_HASH ||
-          process.env.COMMIT_SHA ||
-          null,
-        gitBranch:
-          appConfig?.gitBranch ||
-          process.env.GIT_BRANCH ||
-          process.env.BRANCH_NAME ||
-          null,
-        buildTime: appConfig?.buildTime || process.env.BUILD_TIME || null,
+        buildNumber,
+        gitCommit: this.getGitCommit(),
+        gitBranch: this.getGitBranch(),
+        buildTime,
       },
       uptime: Math.floor(process.uptime()),
       nodeVersion: process.version,
@@ -94,4 +149,5 @@ export class HealthController {
     };
   }
 }
+
 
