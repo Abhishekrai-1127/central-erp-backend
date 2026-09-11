@@ -85,6 +85,15 @@ export class CrmController {
     return this.crmService.getLeads(query);
   }
 
+  @Get('leads/:id')
+  @Roles(UserRole.ADMIN, UserRole.SALES_REP)
+  @ApiOperation({ summary: 'Get single lead details by ID' })
+  @ApiResponse({ status: 200, description: 'Lead details returned.' })
+  @ApiResponse({ status: 404, description: 'Lead not found.' })
+  getLeadById(@Param('id') id: string) {
+    return this.crmService.getLeadById(id);
+  }
+
   @Post('leads')
   @Roles(UserRole.ADMIN, UserRole.SALES_REP)
   @ApiOperation({ summary: 'Create sales prospect lead' })
@@ -105,7 +114,17 @@ export class CrmController {
     return this.crmService.updateLead(id, updateLeadDto);
   }
 
+  @Delete('leads/:id')
+  @Roles(UserRole.ADMIN, UserRole.SALES_REP)
+  @ApiOperation({ summary: 'Soft-delete lead record' })
+  @ApiResponse({ status: 200, description: 'Lead soft-deleted successfully.' })
+  @ApiResponse({ status: 404, description: 'Lead not found.' })
+  deleteLead(@Param('id') id: string) {
+    return this.crmService.deleteLead(id);
+  }
+
   /* ---------------- DEALS ---------------- */
+
 
   @Get('deals')
   @Roles(UserRole.ADMIN, UserRole.SALES_REP, UserRole.ACCOUNTANT)

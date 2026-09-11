@@ -269,10 +269,34 @@ All API responses follow a unified response envelope:
 
 #### 5. List Leads
 - **Endpoint**: `GET /crm/leads`
-- **Query Params**: `?stage=New|Contacted|Qualified|Proposal|Won|Lost&search=Apex&page=1&limit=20`
+- **Query Params**: `?stage=New Lead|Contacted|Qualified|Proposal|Won|Lost&search=Apex&page=1&limit=20`
+- **Auth**: Bearer Token (`ADMIN`, `SALES_REP`)
+- **Response Item**:
+```json
+{
+  "id": "lead-8b1a3d90",
+  "name": "Vikram Malhotra",
+  "company": "Apex Precision Tools",
+  "email": "vikram@apexprecision.com",
+  "phone": "+91 98112 33445",
+  "estimatedValue": "₹3,50,000.00",
+  "numericValue": 350000,
+  "stage": "New Lead",
+  "notes": "Key requirement details...",
+  "date": "2026-09-11",
+  "time": "01:32 PM",
+  "createdDate": "2026-09-11",
+  "createdTime": "01:32 PM",
+  "createdAt": "2026-09-11T08:02:47.000Z",
+  "updatedAt": "2026-09-11T08:02:47.000Z"
+}
+```
+
+#### 6. Get Single Lead
+- **Endpoint**: `GET /crm/leads/:id`
 - **Auth**: Bearer Token (`ADMIN`, `SALES_REP`)
 
-#### 6. Create Lead
+#### 7. Create Lead
 - **Endpoint**: `POST /crm/leads`
 - **Auth**: Bearer Token (`ADMIN`, `SALES_REP`)
 - **Body**:
@@ -281,26 +305,40 @@ All API responses follow a unified response envelope:
   "name": "Vikram Malhotra",
   "company": "Apex Precision Tools",
   "email": "vikram@apexprecision.com",
-  "phone": "+91 98111 22334",
-  "source": "Direct Outreach",
-  "numericValue": 350000.00,
-  "stage": "Qualified",
-  "assignedRep": "Sarah Jenkins",
-  "score": 85,
-  "notes": "Interested in automated CNC machine components."
+  "phone": "+91 98112 33445",
+  "estimatedValue": 350000,
+  "stage": "New Lead",
+  "notes": "Key requirement details..."
 }
 ```
 
-#### 7. Update Lead
+#### 8. Update Lead
 - **Endpoint**: `PUT /crm/leads/:id`
 - **Auth**: Bearer Token (`ADMIN`, `SALES_REP`)
+- **Body**:
+```json
+{
+  "name": "Vikram Malhotra",
+  "company": "Apex Precision Tools",
+  "email": "vikram@apexprecision.com",
+  "phone": "+91 98112 33445",
+  "estimatedValue": 350000,
+  "stage": "New Lead",
+  "notes": "Updated requirement details..."
+}
+```
 
-#### 8. List Deals Pipeline
+#### 9. Delete Lead (Soft-delete)
+- **Endpoint**: `DELETE /crm/leads/:id`
+- **Auth**: Bearer Token (`ADMIN`, `SALES_REP`)
+
+
+#### 10. List Deals Pipeline
 - **Endpoint**: `GET /crm/deals`
 - **Query Params**: `?stage=Proposal|Negotiation|Closed Won|Closed Lost&search=CNC&page=1&limit=20`
 - **Auth**: Bearer Token (`ADMIN`, `SALES_REP`, `ACCOUNTANT`)
 
-#### 9. Create Deal
+#### 11. Create Deal
 - **Endpoint**: `POST /crm/deals`
 - **Auth**: Bearer Token (`ADMIN`, `SALES_REP`)
 - **Body**:
@@ -316,11 +354,12 @@ All API responses follow a unified response envelope:
 }
 ```
 
-#### 10. List Timeline Activities
+#### 12. List Timeline Activities
 - **Endpoint**: `GET /crm/activities?entityId=:id`
 - **Auth**: Bearer Token (`ADMIN`, `SALES_REP`, `ACCOUNTANT`)
 
-#### 11. Log Activity
+#### 13. Log Activity
+
 - **Endpoint**: `POST /crm/activities`
 - **Auth**: Bearer Token (`ADMIN`, `SALES_REP`, `ACCOUNTANT`)
 - **Body**:

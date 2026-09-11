@@ -27,6 +27,31 @@ export class CrmService {
     }).format(num);
   }
 
+  private formatDateTime(dateVal: Date | string | null | undefined): { date: string; time: string; createdAt: string } {
+    if (!dateVal) {
+      const now = new Date();
+      return {
+        date: now.toISOString().split('T')[0],
+        time: now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true }),
+        createdAt: now.toISOString(),
+      };
+    }
+    const d = new Date(dateVal);
+    if (isNaN(d.getTime())) {
+      const now = new Date();
+      return {
+        date: now.toISOString().split('T')[0],
+        time: now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true }),
+        createdAt: now.toISOString(),
+      };
+    }
+    return {
+      date: d.toISOString().split('T')[0],
+      time: d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true }),
+      createdAt: d.toISOString(),
+    };
+  }
+
   /* ---------------- CUSTOMERS & VENDORS ---------------- */
 
   async getCustomers(query: CustomerQueryDto) {
@@ -83,13 +108,21 @@ export class CrmService {
       params,
     );
 
-    const formattedData = res.rows.map((row) => ({
-      ...row,
-      numericOutstanding: Number(row.numericOutstanding || 0),
-      numericCreditLimit: Number(row.numericCreditLimit || 0),
-      outstanding: row.outstanding || this.formatINR(row.numericOutstanding || 0),
-      creditLimit: row.creditLimit || this.formatINR(row.numericCreditLimit || 0),
-    }));
+    const formattedData = res.rows.map((row) => {
+      const dt = this.formatDateTime(row.createdAt);
+      return {
+        ...row,
+        numericOutstanding: Number(row.numericOutstanding || 0),
+        numericCreditLimit: Number(row.numericCreditLimit || 0),
+        outstanding: row.outstanding || this.formatINR(row.numericOutstanding || 0),
+        creditLimit: row.creditLimit || this.formatINR(row.numericCreditLimit || 0),
+        date: dt.date,
+        time: dt.time,
+        createdDate: dt.date,
+        createdTime: dt.time,
+        createdAt: dt.createdAt,
+      };
+    });
 
     return {
       data: formattedData,
@@ -134,12 +167,18 @@ export class CrmService {
     );
 
     const row = res.rows[0];
+    const dt = this.formatDateTime(row.createdAt);
     return {
       ...row,
       numericOutstanding: Number(row.numericOutstanding || 0),
       numericCreditLimit: Number(row.numericCreditLimit || 0),
       outstanding: row.outstanding || this.formatINR(row.numericOutstanding || 0),
       creditLimit: row.creditLimit || this.formatINR(row.numericCreditLimit || 0),
+      date: dt.date,
+      time: dt.time,
+      createdDate: dt.date,
+      createdTime: dt.time,
+      createdAt: dt.createdAt,
     };
   }
 
@@ -194,12 +233,18 @@ export class CrmService {
     );
 
     const row = res.rows[0];
+    const dt = this.formatDateTime(row.createdAt);
     return {
       ...row,
       numericOutstanding: Number(row.numericOutstanding || 0),
       numericCreditLimit: Number(row.numericCreditLimit || 0),
       outstanding: row.outstanding || this.formatINR(row.numericOutstanding || 0),
       creditLimit: row.creditLimit || this.formatINR(row.numericCreditLimit || 0),
+      date: dt.date,
+      time: dt.time,
+      createdDate: dt.date,
+      createdTime: dt.time,
+      createdAt: dt.createdAt,
     };
   }
 
@@ -232,7 +277,7 @@ export class CrmService {
 
     if (search) {
       params.push(`%${search}%`);
-      conditions.push(`(name ILIKE $${params.length} OR company ILIKE $${params.length})`);
+      conditions.push(`(name ILIKE $${params.length} OR company ILIKE $${params.length} OR email ILIKE $${params.length} OR phone ILIKE $${params.length})`);
     }
 
     const whereClause = conditions.join(' AND ');
@@ -250,9 +295,9 @@ export class CrmService {
     const offsetIdx = params.length;
 
     const res = await this.db.query(
-      `SELECT id, name, company, email, phone, source,
+      `SELECT id, name, company, email, phone,
               numeric_value as "numericValue",
-              stage, assigned_rep as "assignedRep", score, notes, created_at as "createdAt"
+              stage, notes, created_at as "createdAt", updated_at as "updatedAt"
        FROM crm_leads
        WHERE ${whereClause}
        ORDER BY created_at DESC
@@ -260,11 +305,26 @@ export class CrmService {
       params,
     );
 
-    const formattedData = res.rows.map((row) => ({
-      ...row,
-      numericValue: Number(row.numericValue || 0),
-      estimatedValue: this.formatINR(row.numericValue || 0),
-    }));
+    const formattedData = res.rows.map((row) => {
+      const dt = this.formatDateTime(row.createdAt);
+      return {
+        id: row.id,
+        name: row.name,
+        company: row.company,
+        email: row.email,
+        phone: row.phone,
+        estimatedValue: this.formatINR(row.numericValue || 0),
+        numericValue: Number(row.numericValue || 0),
+        stage: row.stage,
+        notes: row.notes,
+        date: dt.date,
+        time: dt.time,
+        createdDate: dt.date,
+        createdTime: dt.time,
+        createdAt: dt.createdAt,
+        updatedAt: row.updatedAt,
+      };
+    });
 
     return {
       data: formattedData,
@@ -272,33 +332,90 @@ export class CrmService {
     };
   }
 
+  async getLeadById(id: string) {
+    const res = await this.db.query(
+      `SELECT id, name, company, email, phone,
+              numeric_value as "numericValue",
+              stage, notes, created_at as "createdAt", updated_at as "updatedAt"
+       FROM crm_leads
+       WHERE id = $1 AND is_deleted = false`,
+      [id],
+    );
+    if (res.rows.length === 0) {
+      throw new NotFoundException({ message: `Lead with ID ${id} not found` });
+    }
+    const row = res.rows[0];
+    const dt = this.formatDateTime(row.createdAt);
+    return {
+      id: row.id,
+      name: row.name,
+      company: row.company,
+      email: row.email,
+      phone: row.phone,
+      estimatedValue: this.formatINR(row.numericValue || 0),
+      numericValue: Number(row.numericValue || 0),
+      stage: row.stage,
+      notes: row.notes,
+      date: dt.date,
+      time: dt.time,
+      createdDate: dt.date,
+      createdTime: dt.time,
+      createdAt: dt.createdAt,
+      updatedAt: row.updatedAt,
+    };
+  }
+
   async createLead(dto: CreateLeadDto) {
+    const rawVal = dto.estimatedValue !== undefined ? dto.estimatedValue : dto.numericValue;
+    const numVal = Number(rawVal) || 0;
+
+    let createdAt = new Date();
+    if (dto.createdAt) {
+      const parsed = new Date(dto.createdAt);
+      if (!isNaN(parsed.getTime())) createdAt = parsed;
+    } else if (dto.date) {
+      const timePart = dto.time ? ` ${dto.time}` : ' 00:00:00';
+      const parsed = new Date(`${dto.date}${timePart}`);
+      if (!isNaN(parsed.getTime())) createdAt = parsed;
+    }
+
     const res = await this.db.query(
       `INSERT INTO crm_leads (
-        name, company, email, phone, source, numeric_value, stage, assigned_rep, score, notes
-       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-       RETURNING id, name, company, email, phone, source,
+        name, company, email, phone, numeric_value, stage, notes, created_at
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+       RETURNING id, name, company, email, phone,
                  numeric_value as "numericValue",
-                 stage, assigned_rep as "assignedRep", score, notes, created_at as "createdAt"`,
+                 stage, notes, created_at as "createdAt", updated_at as "updatedAt"`,
       [
         dto.name,
         dto.company,
         dto.email || null,
         dto.phone || null,
-        dto.source || 'Direct Outreach',
-        dto.numericValue || 0,
-        dto.stage || 'New',
-        dto.assignedRep || null,
-        dto.score || 50,
+        numVal,
+        dto.stage || 'New Lead',
         dto.notes || null,
+        createdAt,
       ],
     );
 
     const row = res.rows[0];
+    const dt = this.formatDateTime(row.createdAt);
     return {
-      ...row,
-      numericValue: Number(row.numericValue || 0),
+      id: row.id,
+      name: row.name,
+      company: row.company,
+      email: row.email,
+      phone: row.phone,
       estimatedValue: this.formatINR(row.numericValue || 0),
+      numericValue: Number(row.numericValue || 0),
+      stage: row.stage,
+      notes: row.notes,
+      date: dt.date,
+      time: dt.time,
+      createdDate: dt.date,
+      createdTime: dt.time,
+      createdAt: dt.createdAt,
+      updatedAt: row.updatedAt,
     };
   }
 
@@ -312,35 +429,64 @@ export class CrmService {
     }
 
     const ex = existing.rows[0];
-    const name = dto.name ?? ex.name;
-    const company = dto.company ?? ex.company;
-    const email = dto.email ?? ex.email;
-    const phone = dto.phone ?? ex.phone;
-    const source = dto.source ?? ex.source;
-    const numericValue = dto.numericValue ?? ex.numeric_value;
-    const stage = dto.stage ?? ex.stage;
-    const assignedRep = dto.assignedRep ?? ex.assigned_rep;
-    const score = dto.score ?? ex.score;
-    const notes = dto.notes ?? ex.notes;
+    const name = dto.name !== undefined ? dto.name : ex.name;
+    const company = dto.company !== undefined ? dto.company : ex.company;
+    const email = dto.email !== undefined ? dto.email : ex.email;
+    const phone = dto.phone !== undefined ? dto.phone : ex.phone;
+
+    let numVal = ex.numeric_value;
+    if (dto.estimatedValue !== undefined) {
+      numVal = Number(dto.estimatedValue) || 0;
+    } else if (dto.numericValue !== undefined) {
+      numVal = Number(dto.numericValue) || 0;
+    }
+
+    const stage = dto.stage !== undefined ? dto.stage : ex.stage;
+    const notes = dto.notes !== undefined ? dto.notes : ex.notes;
 
     const res = await this.db.query(
       `UPDATE crm_leads
-       SET name = $1, company = $2, email = $3, phone = $4, source = $5,
-           numeric_value = $6, stage = $7, assigned_rep = $8, score = $9, notes = $10,
+       SET name = $1, company = $2, email = $3, phone = $4,
+           numeric_value = $5, stage = $6, notes = $7,
            updated_at = NOW()
-       WHERE id = $11 AND is_deleted = false
-       RETURNING id, name, company, email, phone, source,
+       WHERE id = $8 AND is_deleted = false
+       RETURNING id, name, company, email, phone,
                  numeric_value as "numericValue",
-                 stage, assigned_rep as "assignedRep", score, notes, created_at as "createdAt"`,
-      [name, company, email, phone, source, numericValue, stage, assignedRep, score, notes, id],
+                 stage, notes, created_at as "createdAt", updated_at as "updatedAt"`,
+      [name, company, email, phone, numVal, stage, notes, id],
     );
 
+
     const row = res.rows[0];
+    const dt = this.formatDateTime(row.createdAt);
     return {
-      ...row,
-      numericValue: Number(row.numericValue || 0),
+      id: row.id,
+      name: row.name,
+      company: row.company,
+      email: row.email,
+      phone: row.phone,
       estimatedValue: this.formatINR(row.numericValue || 0),
+      numericValue: Number(row.numericValue || 0),
+      stage: row.stage,
+      notes: row.notes,
+      date: dt.date,
+      time: dt.time,
+      createdDate: dt.date,
+      createdTime: dt.time,
+      createdAt: dt.createdAt,
+      updatedAt: row.updatedAt,
     };
+  }
+
+  async deleteLead(id: string) {
+    const res = await this.db.query(
+      `UPDATE crm_leads SET is_deleted = true, updated_at = NOW() WHERE id = $1 AND is_deleted = false RETURNING id`,
+      [id],
+    );
+    if (res.rows.length === 0) {
+      throw new NotFoundException({ message: `Lead with ID ${id} not found` });
+    }
+    return { message: `Lead record ${id} soft-deleted successfully` };
   }
 
   /* ---------------- DEALS ---------------- */
@@ -389,11 +535,19 @@ export class CrmService {
       params,
     );
 
-    const formattedData = res.rows.map((row) => ({
-      ...row,
-      value: Number(row.value || 0),
-      formattedValue: this.formatINR(row.value || 0),
-    }));
+    const formattedData = res.rows.map((row) => {
+      const dt = this.formatDateTime(row.createdAt);
+      return {
+        ...row,
+        value: Number(row.value || 0),
+        formattedValue: this.formatINR(row.value || 0),
+        date: dt.date,
+        time: dt.time,
+        createdDate: dt.date,
+        createdTime: dt.time,
+        createdAt: dt.createdAt,
+      };
+    });
 
     return {
       data: formattedData,
@@ -421,10 +575,16 @@ export class CrmService {
     );
 
     const row = res.rows[0];
+    const dt = this.formatDateTime(row.createdAt);
     return {
       ...row,
       value: Number(row.value || 0),
       formattedValue: this.formatINR(row.value || 0),
+      date: dt.date,
+      time: dt.time,
+      createdDate: dt.date,
+      createdTime: dt.time,
+      createdAt: dt.createdAt,
     };
   }
 
@@ -439,7 +599,17 @@ export class CrmService {
       [entityId],
     );
 
-    return res.rows;
+    return res.rows.map((row) => {
+      const dt = this.formatDateTime(row.createdAt);
+      return {
+        ...row,
+        date: dt.date,
+        time: dt.time,
+        createdDate: dt.date,
+        createdTime: dt.time,
+        createdAt: dt.createdAt,
+      };
+    });
   }
 
   async createActivity(dto: CreateActivityDto, createdByName?: string) {
@@ -450,6 +620,16 @@ export class CrmService {
       [dto.entityId, dto.type, dto.notes, createdByName || 'System'],
     );
 
-    return res.rows[0];
+    const row = res.rows[0];
+    const dt = this.formatDateTime(row.createdAt);
+    return {
+      ...row,
+      date: dt.date,
+      time: dt.time,
+      createdDate: dt.date,
+      createdTime: dt.time,
+      createdAt: dt.createdAt,
+    };
   }
+
 }

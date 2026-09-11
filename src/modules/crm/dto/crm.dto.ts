@@ -244,10 +244,10 @@ export class UpdateCustomerDto {
 /* ---------------- LEADS DTOs ---------------- */
 
 export class LeadQueryDto {
-  @ApiPropertyOptional({ enum: LeadStage, example: LeadStage.QUALIFIED })
-  @IsEnum(LeadStage)
+  @ApiPropertyOptional({ example: 'New Lead' })
+  @IsString()
   @IsOptional()
-  stage?: LeadStage;
+  stage?: string;
 
   @ApiPropertyOptional({ example: 'Apex' })
   @IsString()
@@ -279,40 +279,60 @@ export class CreateLeadDto {
   @IsOptional()
   email?: string;
 
-  @ApiPropertyOptional({ example: '+91 98111 22334' })
+  @ApiPropertyOptional({ example: '+91 98112 33445' })
   @IsString()
   @IsOptional()
   phone?: string;
 
-  @ApiPropertyOptional({ enum: LeadSource, example: LeadSource.DIRECT_OUTREACH })
-  @IsEnum(LeadSource)
+  @ApiPropertyOptional({ example: 350000.0 })
+  @IsNumber()
   @IsOptional()
-  source?: LeadSource;
+  estimatedValue?: number;
 
-  @ApiPropertyOptional({ example: 350000.00 })
+  @ApiPropertyOptional({ example: 350000.0 })
   @IsNumber()
   @IsOptional()
   numericValue?: number;
 
-  @ApiPropertyOptional({ enum: LeadStage, example: LeadStage.QUALIFIED })
-  @IsEnum(LeadStage)
+  @ApiPropertyOptional({ example: 'New Lead' })
+  @IsString()
   @IsOptional()
-  stage?: LeadStage;
+  stage?: string;
+
+  @ApiPropertyOptional({ example: 'Key requirement details...' })
+  @IsString()
+  @IsOptional()
+  notes?: string;
+
+  @ApiPropertyOptional({ example: '2026-09-11T13:32:47.000Z' })
+  @IsDateString()
+  @IsOptional()
+  createdAt?: string;
+
+  @ApiPropertyOptional({ example: '2026-09-11' })
+  @IsString()
+  @IsOptional()
+  date?: string;
+
+  @ApiPropertyOptional({ example: '01:32 PM' })
+  @IsString()
+  @IsOptional()
+  time?: string;
+
+  @ApiPropertyOptional({ example: 'Direct Outreach' })
+  @IsString()
+  @IsOptional()
+  source?: string;
 
   @ApiPropertyOptional({ example: 'Sarah Jenkins' })
   @IsString()
   @IsOptional()
   assignedRep?: string;
 
-  @ApiPropertyOptional({ example: 85 })
+  @ApiPropertyOptional({ example: 50 })
   @IsNumber()
   @IsOptional()
   score?: number;
-
-  @ApiPropertyOptional({ example: 'Interested in automated CNC machine components.' })
-  @IsString()
-  @IsOptional()
-  notes?: string;
 }
 
 export class UpdateLeadDto {
@@ -331,41 +351,62 @@ export class UpdateLeadDto {
   @IsOptional()
   email?: string;
 
-  @ApiPropertyOptional({ example: '+91 98111 22334' })
+  @ApiPropertyOptional({ example: '+91 98112 33445' })
   @IsString()
   @IsOptional()
   phone?: string;
 
-  @ApiPropertyOptional({ enum: LeadSource, example: LeadSource.DIRECT_OUTREACH })
-  @IsEnum(LeadSource)
+  @ApiPropertyOptional({ example: 350000.0 })
+  @IsNumber()
   @IsOptional()
-  source?: LeadSource;
+  estimatedValue?: number;
 
-  @ApiPropertyOptional({ example: 350000.00 })
+  @ApiPropertyOptional({ example: 350000.0 })
   @IsNumber()
   @IsOptional()
   numericValue?: number;
 
-  @ApiPropertyOptional({ enum: LeadStage, example: LeadStage.QUALIFIED })
-  @IsEnum(LeadStage)
+  @ApiPropertyOptional({ example: 'New Lead' })
+  @IsString()
   @IsOptional()
-  stage?: LeadStage;
+  stage?: string;
+
+  @ApiPropertyOptional({ example: 'Key requirement details...' })
+  @IsString()
+  @IsOptional()
+  notes?: string;
+
+  @ApiPropertyOptional({ example: '2026-09-11T13:32:47.000Z' })
+  @IsDateString()
+  @IsOptional()
+  createdAt?: string;
+
+  @ApiPropertyOptional({ example: '2026-09-11' })
+  @IsString()
+  @IsOptional()
+  date?: string;
+
+  @ApiPropertyOptional({ example: '01:32 PM' })
+  @IsString()
+  @IsOptional()
+  time?: string;
+
+  @ApiPropertyOptional({ example: 'Direct Outreach' })
+  @IsString()
+  @IsOptional()
+  source?: string;
 
   @ApiPropertyOptional({ example: 'Sarah Jenkins' })
   @IsString()
   @IsOptional()
   assignedRep?: string;
 
-  @ApiPropertyOptional({ example: 85 })
+  @ApiPropertyOptional({ example: 50 })
   @IsNumber()
   @IsOptional()
   score?: number;
-
-  @ApiPropertyOptional({ example: 'Interested in automated CNC machine components.' })
-  @IsString()
-  @IsOptional()
-  notes?: string;
 }
+
 
 /* ---------------- DEALS DTOs ---------------- */
 
