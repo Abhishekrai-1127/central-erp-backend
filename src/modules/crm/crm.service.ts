@@ -93,7 +93,7 @@ export class CrmService {
     const offsetIdx = params.length;
 
     const res = await this.db.query(
-      `SELECT id, type, name, company, email, phone, gst, category, status,
+      `SELECT id, type, name, company, email, phone, gst, category, status, stage, source,
               numeric_outstanding as "numericOutstanding",
               numeric_credit_limit as "numericCreditLimit",
               outstanding, credit_limit as "creditLimit",
@@ -116,6 +116,8 @@ export class CrmService {
         numericCreditLimit: Number(row.numericCreditLimit || 0),
         outstanding: row.outstanding || this.formatINR(row.numericOutstanding || 0),
         creditLimit: row.creditLimit || this.formatINR(row.numericCreditLimit || 0),
+        stage: row.stage || row.status || 'New',
+        source: row.source || 'Inbound Web Inquiry',
         date: dt.date,
         time: dt.time,
         createdDate: dt.date,
@@ -133,11 +135,11 @@ export class CrmService {
   async createCustomer(dto: CreateCustomerDto) {
     const res = await this.db.query(
       `INSERT INTO crm_customers (
-        type, name, company, email, phone, gst, category, status,
+        type, name, company, email, phone, gst, category, status, stage, source,
         numeric_outstanding, numeric_credit_limit, outstanding, credit_limit, assigned_rep,
         billing_address, shipping_address, notes, created_at
-       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
-       RETURNING id, type, name, company, email, phone, gst, category, status,
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
+       RETURNING id, type, name, company, email, phone, gst, category, status, stage, source,
                  numeric_outstanding as "numericOutstanding",
                  numeric_credit_limit as "numericCreditLimit",
                  outstanding, credit_limit as "creditLimit",
@@ -154,6 +156,8 @@ export class CrmService {
         dto.gst || null,
         dto.category || null,
         dto.status || 'Active',
+        dto.stage || 'New',
+        dto.source || 'Inbound Web Inquiry',
         dto.numericOutstanding || 0,
         dto.numericCreditLimit || 0,
         dto.outstanding || null,
@@ -200,6 +204,8 @@ export class CrmService {
     const gst = dto.gst ?? ex.gst;
     const category = dto.category ?? ex.category;
     const status = dto.status ?? ex.status;
+    const stage = dto.stage ?? ex.stage ?? 'New';
+    const source = dto.source ?? ex.source ?? 'Inbound Web Inquiry';
     const numericOutstanding = dto.numericOutstanding ?? ex.numeric_outstanding;
     const numericCreditLimit = dto.numericCreditLimit ?? ex.numeric_credit_limit;
     const outstanding = dto.outstanding ?? ex.outstanding;
@@ -212,11 +218,12 @@ export class CrmService {
     const res = await this.db.query(
       `UPDATE crm_customers
        SET type = $1, name = $2, company = $3, email = $4, phone = $5, gst = $6,
-           category = $7, status = $8, numeric_outstanding = $9, numeric_credit_limit = $10,
-           outstanding = $11, credit_limit = $12, assigned_rep = $13, billing_address = $14,
-           shipping_address = $15, notes = $16, created_at = $17, updated_at = NOW()
-       WHERE id = $18 AND is_deleted = false
-       RETURNING id, type, name, company, email, phone, gst, category, status,
+           category = $7, status = $8, stage = $9, source = $10,
+           numeric_outstanding = $11, numeric_credit_limit = $12,
+           outstanding = $13, credit_limit = $14, assigned_rep = $15, billing_address = $16,
+           shipping_address = $17, notes = $18, created_at = $19, updated_at = NOW()
+       WHERE id = $20 AND is_deleted = false
+       RETURNING id, type, name, company, email, phone, gst, category, status, stage, source,
                  numeric_outstanding as "numericOutstanding",
                  numeric_credit_limit as "numericCreditLimit",
                  outstanding, credit_limit as "creditLimit",
@@ -225,7 +232,7 @@ export class CrmService {
                  shipping_address as "shippingAddress",
                  notes, created_at as "createdAt"`,
       [
-        type, name, company, email, phone, gst, category, status,
+        type, name, company, email, phone, gst, category, status, stage, source,
         numericOutstanding, numericCreditLimit, outstanding, creditLimit, assignedRep,
         billingAddress, shippingAddress, notes,
         dto.createdAt ? new Date(dto.createdAt) : ex.created_at, id,
@@ -295,7 +302,7 @@ export class CrmService {
     const offsetIdx = params.length;
 
     const res = await this.db.query(
-      `SELECT id, name, company, email, phone,
+      `SELECT id, name, company, email, phone, source,
               numeric_value as "numericValue",
               stage, notes, created_at as "createdAt", updated_at as "updatedAt"
        FROM crm_leads
@@ -313,6 +320,7 @@ export class CrmService {
         company: row.company,
         email: row.email,
         phone: row.phone,
+        source: row.source || 'Inbound Web Inquiry',
         estimatedValue: this.formatINR(row.numericValue || 0),
         numericValue: Number(row.numericValue || 0),
         stage: row.stage,
@@ -334,7 +342,7 @@ export class CrmService {
 
   async getLeadById(id: string) {
     const res = await this.db.query(
-      `SELECT id, name, company, email, phone,
+      `SELECT id, name, company, email, phone, source,
               numeric_value as "numericValue",
               stage, notes, created_at as "createdAt", updated_at as "updatedAt"
        FROM crm_leads
@@ -352,6 +360,7 @@ export class CrmService {
       company: row.company,
       email: row.email,
       phone: row.phone,
+      source: row.source || 'Inbound Web Inquiry',
       estimatedValue: this.formatINR(row.numericValue || 0),
       numericValue: Number(row.numericValue || 0),
       stage: row.stage,
@@ -381,9 +390,9 @@ export class CrmService {
 
     const res = await this.db.query(
       `INSERT INTO crm_leads (
-        name, company, email, phone, numeric_value, stage, notes, created_at
-       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-       RETURNING id, name, company, email, phone,
+        name, company, email, phone, source, numeric_value, stage, notes, created_at
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+       RETURNING id, name, company, email, phone, source,
                  numeric_value as "numericValue",
                  stage, notes, created_at as "createdAt", updated_at as "updatedAt"`,
       [
@@ -391,8 +400,9 @@ export class CrmService {
         dto.company,
         dto.email || null,
         dto.phone || null,
+        dto.source || 'Inbound Web Inquiry',
         numVal,
-        dto.stage || 'New Lead',
+        dto.stage || 'New',
         dto.notes || null,
         createdAt,
       ],
@@ -406,6 +416,7 @@ export class CrmService {
       company: row.company,
       email: row.email,
       phone: row.phone,
+      source: row.source || 'Inbound Web Inquiry',
       estimatedValue: this.formatINR(row.numericValue || 0),
       numericValue: Number(row.numericValue || 0),
       stage: row.stage,
@@ -433,6 +444,7 @@ export class CrmService {
     const company = dto.company !== undefined ? dto.company : ex.company;
     const email = dto.email !== undefined ? dto.email : ex.email;
     const phone = dto.phone !== undefined ? dto.phone : ex.phone;
+    const source = dto.source !== undefined ? dto.source : (ex.source || 'Inbound Web Inquiry');
 
     let numVal = ex.numeric_value;
     if (dto.estimatedValue !== undefined) {
@@ -446,15 +458,16 @@ export class CrmService {
 
     const res = await this.db.query(
       `UPDATE crm_leads
-       SET name = $1, company = $2, email = $3, phone = $4,
-           numeric_value = $5, stage = $6, notes = $7,
+       SET name = $1, company = $2, email = $3, phone = $4, source = $5,
+           numeric_value = $6, stage = $7, notes = $8,
            updated_at = NOW()
-       WHERE id = $8 AND is_deleted = false
-       RETURNING id, name, company, email, phone,
+       WHERE id = $9 AND is_deleted = false
+       RETURNING id, name, company, email, phone, source,
                  numeric_value as "numericValue",
                  stage, notes, created_at as "createdAt", updated_at as "updatedAt"`,
-      [name, company, email, phone, numVal, stage, notes, id],
+      [name, company, email, phone, source, numVal, stage, notes, id],
     );
+
 
 
     const row = res.rows[0];

@@ -36,11 +36,29 @@ export class HttpExceptionFilter implements ExceptionFilter {
         if (Array.isArray(respObj.message)) {
           message = 'Validation failed / Resource constraint error';
           errorCode = 'INVALID_INPUT';
-          details = respObj.message.map((msg: string) => {
-            const firstWord = msg.split(' ')[0];
+          details = respObj.message.map((msg: any) => {
+            if (typeof msg === 'string') {
+              // Extract field for "property <name> should not exist"
+              const unwhitelistedMatch = msg.match(/^property\s+([a-zA-Z0-9_]+)\s+should not exist/i);
+              if (unwhitelistedMatch) {
+                return {
+                  field: unwhitelistedMatch[1],
+                  issue: `Field '${unwhitelistedMatch[1]}' is unexpected and not recognized by endpoint [${request.method}] ${request.url}`,
+                };
+              }
+
+              // Extract field for standard class-validator errors (e.g., "name should not be empty")
+              const words = msg.split(' ');
+              const firstWord = words[0];
+              const isGeneric = ['invalid', 'an', 'the', 'property', 'each'].includes(firstWord.toLowerCase());
+
+              return {
+                field: !isGeneric ? firstWord : undefined,
+                issue: msg,
+              };
+            }
             return {
-              field: firstWord.toLowerCase() !== 'invalid' ? firstWord : undefined,
-              issue: msg,
+              issue: typeof msg === 'object' ? JSON.stringify(msg) : String(msg),
             };
           });
         } else {
@@ -73,6 +91,10 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
     response.status(status).json({
       success: false,
+      statusCode: status,
+      path: request.url,
+      method: request.method,
+      timestamp: new Date().toISOString(),
       message,
       error: {
         code: errorCode,
@@ -80,6 +102,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
       },
     });
   }
+
 
   private getErrorCode(status: number): string {
     switch (status) {

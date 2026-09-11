@@ -105,7 +105,9 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
       await this.pool.query(`
         ALTER TABLE crm_customers
           ADD COLUMN IF NOT EXISTS outstanding TEXT,
-          ADD COLUMN IF NOT EXISTS credit_limit TEXT;
+          ADD COLUMN IF NOT EXISTS credit_limit TEXT,
+          ADD COLUMN IF NOT EXISTS stage VARCHAR(50) DEFAULT 'New',
+          ADD COLUMN IF NOT EXISTS source VARCHAR(100) DEFAULT 'Inbound Web Inquiry';
       `);
       await this.pool.query(`
         CREATE TABLE IF NOT EXISTS crm_leads (

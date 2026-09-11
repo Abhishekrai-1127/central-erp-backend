@@ -68,6 +68,15 @@ export class CustomerQueryDto {
 }
 
 export class CreateCustomerDto {
+  @ApiPropertyOptional({ example: 'New' })
+  @IsString()
+  @IsOptional()
+  stage?: string;
+
+  @ApiPropertyOptional({ example: 'Inbound Web Inquiry' })
+  @IsString()
+  @IsOptional()
+  source?: string;
   @ApiProperty({ enum: PartyType, example: PartyType.CUSTOMER })
   @IsEnum(PartyType)
   @IsNotEmpty()
@@ -155,6 +164,15 @@ export class CreateCustomerDto {
 }
 
 export class UpdateCustomerDto {
+  @ApiPropertyOptional({ example: 'New' })
+  @IsString()
+  @IsOptional()
+  stage?: string;
+
+  @ApiPropertyOptional({ example: 'Inbound Web Inquiry' })
+  @IsString()
+  @IsOptional()
+  source?: string;
   @ApiPropertyOptional({ enum: PartyType, example: PartyType.CUSTOMER })
   @IsEnum(PartyType)
   @IsOptional()
