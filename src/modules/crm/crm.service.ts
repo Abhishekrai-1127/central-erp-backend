@@ -97,7 +97,6 @@ export class CrmService {
               numeric_outstanding as "numericOutstanding",
               numeric_credit_limit as "numericCreditLimit",
               outstanding, credit_limit as "creditLimit",
-              assigned_rep as "assignedRep",
               billing_address as "billingAddress",
               shipping_address as "shippingAddress",
               notes, created_at as "createdAt"
@@ -136,14 +135,13 @@ export class CrmService {
     const res = await this.db.query(
       `INSERT INTO crm_customers (
         type, name, company, email, phone, gst, category, status, stage, source,
-        numeric_outstanding, numeric_credit_limit, outstanding, credit_limit, assigned_rep,
+        numeric_outstanding, numeric_credit_limit, outstanding, credit_limit,
         billing_address, shipping_address, notes, created_at
-       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
        RETURNING id, type, name, company, email, phone, gst, category, status, stage, source,
                  numeric_outstanding as "numericOutstanding",
                  numeric_credit_limit as "numericCreditLimit",
                  outstanding, credit_limit as "creditLimit",
-                 assigned_rep as "assignedRep",
                  billing_address as "billingAddress",
                  shipping_address as "shippingAddress",
                  notes, created_at as "createdAt"`,
@@ -162,7 +160,6 @@ export class CrmService {
         dto.numericCreditLimit || 0,
         dto.outstanding || null,
         dto.creditLimit || null,
-        dto.assignedRep || null,
         dto.billingAddress || null,
         dto.shippingAddress || null,
         dto.notes || null,
@@ -199,7 +196,7 @@ export class CrmService {
     const type = dto.type ?? ex.type;
     const name = dto.name ?? ex.name;
     const company = dto.company ?? ex.company;
-    const email = dto.email ?? ex.email;
+    const email = dto.email !== undefined ? (dto.email || null) : ex.email;
     const phone = dto.phone ?? ex.phone;
     const gst = dto.gst ?? ex.gst;
     const category = dto.category ?? ex.category;
@@ -210,7 +207,6 @@ export class CrmService {
     const numericCreditLimit = dto.numericCreditLimit ?? ex.numeric_credit_limit;
     const outstanding = dto.outstanding ?? ex.outstanding;
     const creditLimit = dto.creditLimit ?? ex.credit_limit;
-    const assignedRep = dto.assignedRep ?? ex.assigned_rep;
     const billingAddress = dto.billingAddress ?? ex.billing_address;
     const shippingAddress = dto.shippingAddress ?? ex.shipping_address;
     const notes = dto.notes ?? ex.notes;
@@ -220,20 +216,19 @@ export class CrmService {
        SET type = $1, name = $2, company = $3, email = $4, phone = $5, gst = $6,
            category = $7, status = $8, stage = $9, source = $10,
            numeric_outstanding = $11, numeric_credit_limit = $12,
-           outstanding = $13, credit_limit = $14, assigned_rep = $15, billing_address = $16,
-           shipping_address = $17, notes = $18, created_at = $19, updated_at = NOW()
-       WHERE id = $20 AND is_deleted = false
+           outstanding = $13, credit_limit = $14, billing_address = $15,
+           shipping_address = $16, notes = $17, created_at = $18, updated_at = NOW()
+       WHERE id = $19 AND is_deleted = false
        RETURNING id, type, name, company, email, phone, gst, category, status, stage, source,
                  numeric_outstanding as "numericOutstanding",
                  numeric_credit_limit as "numericCreditLimit",
                  outstanding, credit_limit as "creditLimit",
-                 assigned_rep as "assignedRep",
                  billing_address as "billingAddress",
                  shipping_address as "shippingAddress",
                  notes, created_at as "createdAt"`,
       [
         type, name, company, email, phone, gst, category, status, stage, source,
-        numericOutstanding, numericCreditLimit, outstanding, creditLimit, assignedRep,
+        numericOutstanding, numericCreditLimit, outstanding, creditLimit,
         billingAddress, shippingAddress, notes,
         dto.createdAt ? new Date(dto.createdAt) : ex.created_at, id,
       ],
@@ -442,7 +437,7 @@ export class CrmService {
     const ex = existing.rows[0];
     const name = dto.name !== undefined ? dto.name : ex.name;
     const company = dto.company !== undefined ? dto.company : ex.company;
-    const email = dto.email !== undefined ? dto.email : ex.email;
+    const email = dto.email !== undefined ? (dto.email || null) : ex.email;
     const phone = dto.phone !== undefined ? dto.phone : ex.phone;
     const source = dto.source !== undefined ? dto.source : (ex.source || 'Inbound Web Inquiry');
 
@@ -540,7 +535,7 @@ export class CrmService {
     const res = await this.db.query(
       `SELECT id, title, customer_id as "customerId", customer_name as "customerName",
               value, stage, expected_close_date as "expectedCloseDate",
-              assigned_rep as "assignedRep", created_at as "createdAt"
+              created_at as "createdAt"
        FROM crm_deals
        WHERE ${whereClause}
        ORDER BY created_at DESC
@@ -571,11 +566,11 @@ export class CrmService {
   async createDeal(dto: CreateDealDto) {
     const res = await this.db.query(
       `INSERT INTO crm_deals (
-        title, customer_id, customer_name, value, stage, expected_close_date, assigned_rep
-       ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+        title, customer_id, customer_name, value, stage, expected_close_date
+       ) VALUES ($1, $2, $3, $4, $5, $6)
        RETURNING id, title, customer_id as "customerId", customer_name as "customerName",
                  value, stage, expected_close_date as "expectedCloseDate",
-                 assigned_rep as "assignedRep", created_at as "createdAt"`,
+                 created_at as "createdAt"`,
       [
         dto.title,
         dto.customerId || null,
@@ -583,7 +578,6 @@ export class CrmService {
         dto.value || 0,
         dto.stage || 'Proposal',
         dto.expectedCloseDate || null,
-        dto.assignedRep || null,
       ],
     );
 

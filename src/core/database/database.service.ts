@@ -91,7 +91,6 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
             numeric_credit_limit NUMERIC(15,2) DEFAULT 0.00,
             outstanding TEXT,
             credit_limit TEXT,
-            assigned_rep VARCHAR(255),
             billing_address TEXT,
             shipping_address TEXT,
             notes TEXT,
@@ -119,7 +118,6 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
             source VARCHAR(100) DEFAULT 'Direct Outreach',
             numeric_value NUMERIC(15,2) DEFAULT 0.00,
             stage VARCHAR(50) DEFAULT 'New',
-            assigned_rep VARCHAR(255),
             score INT DEFAULT 50,
             notes TEXT,
             is_deleted BOOLEAN DEFAULT FALSE,
@@ -136,7 +134,6 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
             value NUMERIC(15,2) DEFAULT 0.00,
             stage VARCHAR(50) DEFAULT 'Proposal',
             expected_close_date DATE,
-            assigned_rep VARCHAR(255),
             is_deleted BOOLEAN DEFAULT FALSE,
             created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
@@ -176,6 +173,12 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
             created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
         );
+      `);
+      await this.pool.query(`
+        ALTER TABLE sales_documents
+          ADD COLUMN IF NOT EXISTS valid_until DATE,
+          ADD COLUMN IF NOT EXISTS notes TEXT,
+          ADD COLUMN IF NOT EXISTS currency VARCHAR(20) DEFAULT 'INR (₹)';
       `);
       await this.pool.query(`
         CREATE TABLE IF NOT EXISTS purchase_records (

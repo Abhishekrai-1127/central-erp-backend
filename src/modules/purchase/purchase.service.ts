@@ -21,6 +21,51 @@ export class PurchaseService {
     }).format(num);
   }
 
+  /* ---------------- GET NEXT SEQUENTIAL REF NO ---------------- */
+
+  async getNextRefNo(type: string) {
+    const prefixMap: Record<string, string> = {
+      rfo: "RFO",
+      purchase_bill: "PB",
+      purchased_machinery: "MAC",
+      bill: "PB",
+      machinery: "MAC",
+    };
+
+    const docType = (type || "purchase_bill").toLowerCase();
+    const prefix = prefixMap[docType] || "PUR";
+    const year = new Date().getFullYear();
+    const pattern = `${prefix}-${year}-%`;
+
+    const res = await this.db.query(
+      `SELECT ref_no
+       FROM purchase_records
+       WHERE type = $1 AND ref_no LIKE $2
+       ORDER BY id DESC
+       LIMIT 100`,
+      [docType, pattern],
+    );
+
+    let maxSeq = 0;
+    for (const row of res.rows) {
+      const parts = (row.ref_no || "").split("-");
+      if (parts.length >= 3) {
+        const seq = parseInt(parts[parts.length - 1], 10);
+        if (!isNaN(seq) && seq > maxSeq) {
+          maxSeq = seq;
+        }
+      }
+    }
+
+    const nextSeq = maxSeq + 1;
+    const paddedSeq = String(nextSeq).padStart(4, "0");
+    return {
+      type: docType,
+      refNo: `${prefix}-${year}-${paddedSeq}`,
+      nextSequence: nextSeq,
+    };
+  }
+
   /* ---------------- GET PURCHASE RECORDS ---------------- */
 
   async getPurchaseRecords(query: PurchaseRecordQueryDto) {
@@ -127,6 +172,11 @@ export class PurchaseService {
   /* ---------------- CREATE PURCHASE RECORD ---------------- */
 
   async createPurchaseRecord(dto: CreatePurchaseRecordDto) {
+    let finalRefNo = dto.refNo;
+    if (!finalRefNo) {
+      const next = await this.getNextRefNo(dto.type);
+      finalRefNo = next.refNo;
+    }
     const res = await this.db.query(
       `INSERT INTO purchase_records (
         ref_no, type, vendor, vendor_invoice_no, request_date, bill_date,
@@ -142,7 +192,7 @@ export class PurchaseService {
                  numeric_cost as "numericCost", location, status,
                  created_at as "createdAt"`,
       [
-        dto.refNo || null,
+        finalRefNo || null,
         dto.type,
         dto.vendor,
         dto.vendorInvoiceNo || null,

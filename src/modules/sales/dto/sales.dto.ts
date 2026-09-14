@@ -186,6 +186,22 @@ export class CreateSalesDocDto {
   @IsNumber()
   @IsOptional()
   grandTotal?: number;
+
+  @ApiPropertyOptional({ example: "2026-10-15" })
+  @IsString()
+  @IsOptional()
+  validUntil?: string;
+
+  @ApiPropertyOptional({ example: "Standard quotation terms apply." })
+  @IsString()
+  @IsOptional()
+  notes?: string;
+
+  @ApiPropertyOptional({ example: "INR (₹)" })
+  @IsString()
+  @IsOptional()
+  currency?: string;
+
 }
 
 export class UpdateSalesDocDto {
@@ -275,4 +291,20 @@ export class UpdateSalesDocDto {
   @IsNumber()
   @IsOptional()
   grandTotal?: number;
+
+  @ApiPropertyOptional({ example: "2026-10-15" })
+  @IsString()
+  @IsOptional()
+  validUntil?: string;
+
+  @ApiPropertyOptional({ example: "Standard quotation terms apply." })
+  @IsString()
+  @IsOptional()
+  notes?: string;
+
+  @ApiPropertyOptional({ example: "INR (₹)" })
+  @IsString()
+  @IsOptional()
+  currency?: string;
+
 }

@@ -120,6 +120,9 @@ CREATE TABLE IF NOT EXISTS sales_documents (
     sgst_amount NUMERIC(15,2) DEFAULT 0.00,
     igst_amount NUMERIC(15,2) DEFAULT 0.00,
     grand_total NUMERIC(15,2) DEFAULT 0.00,
+    valid_until DATE,
+    notes TEXT,
+    currency VARCHAR(20) DEFAULT 'INR (₹)',
     is_deleted BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP

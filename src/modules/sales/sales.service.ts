@@ -18,6 +18,57 @@ export class SalesService {
 
   constructor(private readonly db: DatabaseService) {}
 
+  
+  /* ---------------- GET NEXT REF NO ---------------- */
+
+  async getNextRefNo(type: SalesDocType = SalesDocType.INVOICE) {
+    const prefixMap: Record<string, string> = {
+      quotation: "QT",
+      sales_order: "SO",
+      invoice: "INV",
+      delivery_challan: "DC",
+      payment: "PAY",
+    };
+
+    const docType = (type || "invoice").toLowerCase();
+    const prefix = prefixMap[docType] || "DOC";
+    const year = new Date().getFullYear();
+    const pattern = `${prefix}-${year}-%`;
+
+    const res = await this.db.query(
+      `SELECT ref_no
+       FROM sales_documents
+       WHERE type = $1 AND ref_no LIKE $2
+       ORDER BY id DESC
+       LIMIT 100`,
+      [docType, pattern],
+    );
+
+    let maxSeq = 0;
+    for (const row of res.rows) {
+      const parts = (row.ref_no || "").split("-");
+      if (parts.length >= 3) {
+        const seq = parseInt(parts[parts.length - 1], 10);
+        if (!isNaN(seq) && seq > maxSeq) {
+          maxSeq = seq;
+        }
+      }
+    }
+
+    const nextSeq = maxSeq + 1;
+    const paddedSeq = String(nextSeq).padStart(4, "0");
+    const nextRefNo = `${prefix}-${year}-${paddedSeq}`;
+
+    return {
+      success: true,
+      refNo: nextRefNo,
+      type: docType,
+      prefix,
+      year,
+      sequence: nextSeq,
+    };
+  }
+
   /* ---------------- CHECK INVOICE EXISTS ---------------- */
 
   async checkInvoiceExists(salesOrderNo: string) {
@@ -27,7 +78,7 @@ export class SalesService {
 
     const res = await this.db.query(
       `SELECT id, ref_no as "refNo", type, sales_order_no as "salesOrderNo",
-              status, customer, grand_total as "grandTotal", created_at as "createdAt"
+              status, customer, grand_total as "grandTotal", valid_until as "validUntil", notes, currency, created_at as "createdAt"
        FROM sales_documents
        WHERE sales_order_no = $1 AND type = 'invoice' AND is_deleted = false
        LIMIT 1`,
@@ -90,7 +141,7 @@ export class SalesService {
               gstin, place_of_supply as "placeOfSupply", items,
               subtotal, tax_total as "taxTotal", cgst_amount as "cgstAmount",
               sgst_amount as "sgstAmount", igst_amount as "igstAmount",
-              grand_total as "grandTotal", created_at as "createdAt"
+              grand_total as "grandTotal", valid_until as "validUntil", notes, currency, created_at as "createdAt"
        FROM sales_documents
        WHERE ${whereClause}
        ORDER BY created_at DESC
@@ -123,7 +174,7 @@ export class SalesService {
               gstin, place_of_supply as "placeOfSupply", items,
               subtotal, tax_total as "taxTotal", cgst_amount as "cgstAmount",
               sgst_amount as "sgstAmount", igst_amount as "igstAmount",
-              grand_total as "grandTotal", created_at as "createdAt"
+              grand_total as "grandTotal", valid_until as "validUntil", notes, currency, created_at as "createdAt"
        FROM sales_documents
        WHERE id = $1 AND is_deleted = false`,
       [id],
@@ -148,6 +199,26 @@ export class SalesService {
   /* ---------------- CREATE SALES DOCUMENT ---------------- */
 
   async createDocument(dto: CreateSalesDocDto) {
+    // Validate or Auto-Generate Sequential refNo
+    let finalRefNo = dto.refNo ? dto.refNo.trim() : "";
+    if (!finalRefNo) {
+      const nextInfo = await this.getNextRefNo(dto.type);
+      finalRefNo = nextInfo.refNo;
+    }
+
+    // Check for duplicate reference number
+    const dupCheck = await this.db.query(
+      `SELECT id FROM sales_documents WHERE ref_no = $1 AND is_deleted = false LIMIT 1`,
+      [finalRefNo],
+    );
+    if (dupCheck.rows.length > 0) {
+      throw new UnprocessableEntityException({
+        statusCode: 422,
+        code: "DUPLICATE_REF_NO",
+        message: `A sales document with reference number ${finalRefNo} already exists.`,
+      });
+    }
+
     // MANDATORY BUSINESS RULE: Single-Invoice Enforcement per Sales Order
     if (dto.type === SalesDocType.INVOICE && dto.salesOrderNo) {
       const check = await this.checkInvoiceExists(dto.salesOrderNo);
@@ -169,16 +240,17 @@ export class SalesService {
       `INSERT INTO sales_documents (
         ref_no, type, sales_order_no, po_number, date, status,
         customer, customer_id, gstin, place_of_supply, items,
-        subtotal, tax_total, cgst_amount, sgst_amount, igst_amount, grand_total
-       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+        subtotal, tax_total, cgst_amount, sgst_amount, igst_amount, grand_total,
+        valid_until, notes, currency
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
        RETURNING id, ref_no as "refNo", type, sales_order_no as "salesOrderNo",
                  po_number as "poNumber", date, status, customer, customer_id as "customerId",
                  gstin, place_of_supply as "placeOfSupply", items,
                  subtotal, tax_total as "taxTotal", cgst_amount as "cgstAmount",
                  sgst_amount as "sgstAmount", igst_amount as "igstAmount",
-                 grand_total as "grandTotal", created_at as "createdAt"`,
+                 grand_total as "grandTotal", valid_until as "validUntil", notes, currency, created_at as "createdAt"`,
       [
-        dto.refNo,
+        finalRefNo,
         dto.type,
         dto.salesOrderNo || null,
         dto.poNumber || null,
@@ -195,6 +267,9 @@ export class SalesService {
         dto.sgstAmount || 0,
         dto.igstAmount || 0,
         dto.grandTotal || 0,
+        dto.validUntil || null,
+        dto.notes || null,
+        dto.currency || 'INR (₹)',
       ],
     );
 
@@ -294,7 +369,7 @@ export class SalesService {
                  gstin, place_of_supply as "placeOfSupply", items,
                  subtotal, tax_total as "taxTotal", cgst_amount as "cgstAmount",
                  sgst_amount as "sgstAmount", igst_amount as "igstAmount",
-                 grand_total as "grandTotal", created_at as "createdAt"`,
+                 grand_total as "grandTotal", valid_until as "validUntil", notes, currency, created_at as "createdAt"`,
       [
         refNo, type, salesOrderNo, poNumber, date, status,
         customer, customerId, gstin, placeOfSupply, itemsJson,

@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsDateString, IsEnum, IsNotEmpty, IsNumber, IsOptional, IsString, IsEmail } from 'class-validator';
+import { IsDateString, IsEnum, IsNotEmpty, IsNumber, IsOptional, IsString, IsEmail, ValidateIf } from 'class-validator';
 
 export enum PartyType {
   CUSTOMER = 'Customer',
@@ -92,10 +92,11 @@ export class CreateCustomerDto {
   @IsNotEmpty()
   company: string;
 
-  @ApiPropertyOptional({ example: 'amitabh@sharma-logistics.com' })
-  @IsEmail()
+  @ApiPropertyOptional({ example: 'amitabh@sharma-logistics.com', nullable: true })
   @IsOptional()
-  email?: string;
+  @ValidateIf((o) => o.email !== null && o.email !== undefined && o.email !== '')
+  @IsEmail()
+  email?: string | null;
 
   @ApiPropertyOptional({ example: '+91 98765 43210' })
   @IsString()
@@ -141,11 +142,6 @@ export class CreateCustomerDto {
   @IsDateString()
   @IsOptional()
   createdAt?: string;
-
-  @ApiPropertyOptional({ example: 'Sarah Jenkins' })
-  @IsString()
-  @IsOptional()
-  assignedRep?: string;
 
   @ApiPropertyOptional({ example: 'Plot 42, Transport Nagar, Kanpur, UP 208023' })
   @IsString()
@@ -188,10 +184,11 @@ export class UpdateCustomerDto {
   @IsOptional()
   company?: string;
 
-  @ApiPropertyOptional({ example: 'amitabh@sharma-logistics.com' })
-  @IsEmail()
+  @ApiPropertyOptional({ example: 'amitabh@sharma-logistics.com', nullable: true })
   @IsOptional()
-  email?: string;
+  @ValidateIf((o) => o.email !== null && o.email !== undefined && o.email !== '')
+  @IsEmail()
+  email?: string | null;
 
   @ApiPropertyOptional({ example: '+91 98765 43210' })
   @IsString()
@@ -237,11 +234,6 @@ export class UpdateCustomerDto {
   @IsDateString()
   @IsOptional()
   createdAt?: string;
-
-  @ApiPropertyOptional({ example: 'Sarah Jenkins' })
-  @IsString()
-  @IsOptional()
-  assignedRep?: string;
 
   @ApiPropertyOptional({ example: 'Plot 42, Transport Nagar, Kanpur, UP 208023' })
   @IsString()
@@ -292,10 +284,11 @@ export class CreateLeadDto {
   @IsNotEmpty()
   company: string;
 
-  @ApiPropertyOptional({ example: 'vikram@apexprecision.com' })
-  @IsEmail()
+  @ApiPropertyOptional({ example: 'vikram@apexprecision.com', nullable: true })
   @IsOptional()
-  email?: string;
+  @ValidateIf((o) => o.email !== null && o.email !== undefined && o.email !== '')
+  @IsEmail()
+  email?: string | null;
 
   @ApiPropertyOptional({ example: '+91 98112 33445' })
   @IsString()
@@ -341,11 +334,6 @@ export class CreateLeadDto {
   @IsString()
   @IsOptional()
   source?: string;
-
-  @ApiPropertyOptional({ example: 'Sarah Jenkins' })
-  @IsString()
-  @IsOptional()
-  assignedRep?: string;
 
   @ApiPropertyOptional({ example: 50 })
   @IsNumber()
@@ -364,10 +352,11 @@ export class UpdateLeadDto {
   @IsOptional()
   company?: string;
 
-  @ApiPropertyOptional({ example: 'vikram@apexprecision.com' })
-  @IsEmail()
+  @ApiPropertyOptional({ example: 'vikram@apexprecision.com', nullable: true })
   @IsOptional()
-  email?: string;
+  @ValidateIf((o) => o.email !== null && o.email !== undefined && o.email !== '')
+  @IsEmail()
+  email?: string | null;
 
   @ApiPropertyOptional({ example: '+91 98112 33445' })
   @IsString()
@@ -413,11 +402,6 @@ export class UpdateLeadDto {
   @IsString()
   @IsOptional()
   source?: string;
-
-  @ApiPropertyOptional({ example: 'Sarah Jenkins' })
-  @IsString()
-  @IsOptional()
-  assignedRep?: string;
 
   @ApiPropertyOptional({ example: 50 })
   @IsNumber()
@@ -478,11 +462,6 @@ export class CreateDealDto {
   @IsString()
   @IsOptional()
   expectedCloseDate?: string;
-
-  @ApiPropertyOptional({ example: 'Sarah Jenkins' })
-  @IsString()
-  @IsOptional()
-  assignedRep?: string;
 }
 
 /* ---------------- ACTIVITIES DTOs ---------------- */

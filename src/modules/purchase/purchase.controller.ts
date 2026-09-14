@@ -41,6 +41,19 @@ export class PurchaseController {
     return this.purchaseService.getPurchaseRecords(query);
   }
 
+  @Get('next-ref-no')
+  @Roles(
+    UserRole.ADMIN,
+    UserRole.PURCHASE_OFFICER,
+    UserRole.ACCOUNTANT,
+    UserRole.WAREHOUSE_MANAGER,
+  )
+  @ApiOperation({ summary: 'Generate next sequential reference number for purchase records' })
+  @ApiResponse({ status: 200, description: 'Next sequential reference number.' })
+  getNextRefNo(@Query('type') type: string) {
+    return this.purchaseService.getNextRefNo(type);
+  }
+
   @Get(':id')
   @Roles(
     UserRole.ADMIN,

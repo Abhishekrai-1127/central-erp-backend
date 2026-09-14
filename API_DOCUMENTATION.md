@@ -252,7 +252,6 @@ All API responses follow a unified response envelope:
   "status": "Active",
   "numericOutstanding": 42850.00,
   "numericCreditLimit": 500000.00,
-  "assignedRep": "Sarah Jenkins",
   "billingAddress": "Plot 42, Transport Nagar, Kanpur, UP 208023",
   "shippingAddress": "Plot 42, Transport Nagar, Kanpur, UP 208023",
   "notes": "Key enterprise account for North India freight logistics."
@@ -350,7 +349,6 @@ All API responses follow a unified response envelope:
   "value": 350000.00,
   "stage": "Proposal",
   "expectedCloseDate": "2026-09-30",
-  "assignedRep": "Sarah Jenkins"
 }
 ```
 
@@ -438,20 +436,38 @@ All API responses follow a unified response envelope:
 
 ### 💰 Sales Module (`/api/v1/sales`)
 
-#### 1. List Sales Documents
+#### 1. Generate Next Sequential Reference Number
+- **Endpoint**: `GET /sales/next-ref-no?type=quotation|sales_order|invoice|delivery_challan|payment`
+- **Auth**: Bearer Token (`ADMIN`, `SALES_REP`, `ACCOUNTANT`, `WAREHOUSE_MANAGER`)
+- **Description**: Dynamically calculates the next sequential, zero-padded reference number (e.g. `QT-2026-0001`, `SO-2026-0001`, `INV-2026-0001`) for the current year.
+- **Response**:
+```json
+{
+  "success": true,
+  "data": {
+    "refNo": "QT-2026-0001",
+    "type": "quotation",
+    "prefix": "QT",
+    "year": 2026,
+    "sequence": 1
+  }
+}
+```
+
+#### 2. List Sales Documents
 - **Endpoint**: `GET /sales/documents`
 - **Query Params**: `?type=quotation|sales_order|invoice|delivery_challan|payment&status=DRAFT|PENDING|APPROVED|PAID|UNPAID|DELIVERED|CANCELLED&search=SO-2026-1441&page=1&limit=20`
 - **Auth**: Bearer Token (`ADMIN`, `SALES_REP`, `ACCOUNTANT`, `WAREHOUSE_MANAGER`)
 
-#### 2. Check Single-Invoice Generation Rule
+#### 3. Check Single-Invoice Generation Rule
 - **Endpoint**: `GET /sales/check-invoice-exists?salesOrderNo=SO-2026-1441`
 - **Auth**: Bearer Token (`ADMIN`, `SALES_REP`, `ACCOUNTANT`, `WAREHOUSE_MANAGER`)
 
-#### 3. Get Sales Document by ID
+#### 4. Get Sales Document by ID
 - **Endpoint**: `GET /sales/documents/:id`
 - **Auth**: Bearer Token (`ADMIN`, `SALES_REP`, `ACCOUNTANT`, `WAREHOUSE_MANAGER`)
 
-#### 4. Create Sales Document
+#### 5. Create Sales Document
 - **Endpoint**: `POST /sales/documents`
 - **Auth**: Bearer Token (`ADMIN`, `SALES_REP`, `ACCOUNTANT`)
 - **Validation**: Enforces HTTP `422 Unprocessable Entity` if an invoice has already been generated for the referenced `salesOrderNo`.
@@ -490,11 +506,11 @@ All API responses follow a unified response envelope:
 }
 ```
 
-#### 5. Update Sales Document
+#### 6. Update Sales Document
 - **Endpoint**: `PUT /sales/documents/:id`
 - **Auth**: Bearer Token (`ADMIN`, `SALES_REP`, `ACCOUNTANT`)
 
-#### 6. Delete Sales Document
+#### 7. Delete Sales Document
 - **Endpoint**: `DELETE /sales/documents/:id`
 - **Auth**: Bearer Token (`ADMIN`)
 

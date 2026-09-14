@@ -15,6 +15,7 @@ import {
   SalesDocQueryDto,
   CreateSalesDocDto,
   UpdateSalesDocDto,
+  SalesDocType,
 } from './dto/sales.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -36,6 +37,15 @@ export class SalesController {
   @ApiResponse({ status: 200, description: 'Returns sales documents.' })
   getDocuments(@Query() query: SalesDocQueryDto) {
     return this.salesService.getDocuments(query);
+  }
+
+
+  @Get('next-ref-no')
+  @Roles(UserRole.ADMIN, UserRole.SALES_REP, UserRole.ACCOUNTANT, UserRole.WAREHOUSE_MANAGER)
+  @ApiOperation({ summary: 'Generate next sequential reference number for sales documents' })
+  @ApiResponse({ status: 200, description: 'Next sequential reference number.' })
+  getNextRefNo(@Query('type') type: SalesDocType) {
+    return this.salesService.getNextRefNo(type);
   }
 
   @Get('check-invoice-exists')
