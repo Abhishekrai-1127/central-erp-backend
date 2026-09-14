@@ -178,7 +178,13 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
         ALTER TABLE sales_documents
           ADD COLUMN IF NOT EXISTS valid_until DATE,
           ADD COLUMN IF NOT EXISTS notes TEXT,
-          ADD COLUMN IF NOT EXISTS currency VARCHAR(20) DEFAULT 'INR (₹)';
+          ADD COLUMN IF NOT EXISTS currency VARCHAR(20) DEFAULT 'INR (₹)',
+          ADD COLUMN IF NOT EXISTS transporter JSONB DEFAULT '{}'::jsonb,
+          ADD COLUMN IF NOT EXISTS transporter_name VARCHAR(255),
+          ADD COLUMN IF NOT EXISTS vehicle_no VARCHAR(100),
+          ADD COLUMN IF NOT EXISTS date_of_supply DATE,
+          ADD COLUMN IF NOT EXISTS eway_bill_no VARCHAR(100),
+          ADD COLUMN IF NOT EXISTS eway_bill_date DATE;
       `);
       await this.pool.query(`
         CREATE TABLE IF NOT EXISTS purchase_records (

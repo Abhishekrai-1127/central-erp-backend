@@ -38,6 +38,15 @@ export class CrmController {
 
   /* ---------------- CUSTOMERS & VENDORS ---------------- */
 
+  @Get("lookup-gstin/:gstin")
+  @Roles(UserRole.ADMIN, UserRole.SALES_REP, UserRole.ACCOUNTANT, UserRole.PURCHASE_OFFICER)
+  @ApiOperation({ summary: "Lookup customer/vendor and state details by 15-character GSTIN" })
+  @ApiResponse({ status: 200, description: "Returns matching party or parsed GST metadata." })
+  lookupByGstin(@Param("gstin") gstin: string) {
+    return this.crmService.lookupByGstin(gstin);
+  }
+
+
   @Get('customers')
   @Roles(UserRole.ADMIN, UserRole.SALES_REP, UserRole.ACCOUNTANT, UserRole.PURCHASE_OFFICER)
   @ApiOperation({ summary: 'Fetch customers/vendors (?type=Customer|Vendor&status=Active)' })

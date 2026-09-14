@@ -123,6 +123,12 @@ CREATE TABLE IF NOT EXISTS sales_documents (
     valid_until DATE,
     notes TEXT,
     currency VARCHAR(20) DEFAULT 'INR (₹)',
+    transporter JSONB DEFAULT '{}'::jsonb,
+    transporter_name VARCHAR(255),
+    vehicle_no VARCHAR(100),
+    date_of_supply DATE,
+    eway_bill_no VARCHAR(100),
+    eway_bill_date DATE,
     is_deleted BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP

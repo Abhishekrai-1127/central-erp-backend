@@ -100,6 +100,38 @@ export class SalesDocQueryDto {
   limit?: number;
 }
 
+export class TransporterDto {
+  @ApiPropertyOptional({ example: "By Road / VRL Logistics" })
+  @IsString()
+  @IsOptional()
+  name?: string;
+
+  @ApiPropertyOptional({ example: "DL 01 AB 1234" })
+  @IsString()
+  @IsOptional()
+  vehicleNo?: string;
+
+  @ApiPropertyOptional({ example: "2026-09-15" })
+  @IsString()
+  @IsOptional()
+  dateOfSupply?: string;
+
+  @ApiPropertyOptional({ example: "07 - Delhi" })
+  @IsString()
+  @IsOptional()
+  placeOfSupply?: string;
+
+  @ApiPropertyOptional({ example: "2410 0184 9281" })
+  @IsString()
+  @IsOptional()
+  eWayBillNo?: string;
+
+  @ApiPropertyOptional({ example: "2026-09-15" })
+  @IsString()
+  @IsOptional()
+  eWayBillDate?: string;
+}
+
 export class CreateSalesDocDto {
   @ApiProperty({ example: 'INV-2026-1441' })
   @IsString()
@@ -201,6 +233,37 @@ export class CreateSalesDocDto {
   @IsString()
   @IsOptional()
   currency?: string;
+
+  @ApiPropertyOptional({ type: () => TransporterDto })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => TransporterDto)
+  transporter?: TransporterDto;
+
+  @ApiPropertyOptional({ example: "By Road / VRL Logistics" })
+  @IsString()
+  @IsOptional()
+  transporterName?: string;
+
+  @ApiPropertyOptional({ example: "DL 01 AB 1234" })
+  @IsString()
+  @IsOptional()
+  vehicleNo?: string;
+
+  @ApiPropertyOptional({ example: "2026-09-15" })
+  @IsString()
+  @IsOptional()
+  dateOfSupply?: string;
+
+  @ApiPropertyOptional({ example: "2410 0184 9281" })
+  @IsString()
+  @IsOptional()
+  eWayBillNo?: string;
+
+  @ApiPropertyOptional({ example: "2026-09-15" })
+  @IsString()
+  @IsOptional()
+  eWayBillDate?: string;
 
 }
 
@@ -306,5 +369,36 @@ export class UpdateSalesDocDto {
   @IsString()
   @IsOptional()
   currency?: string;
+
+  @ApiPropertyOptional({ type: () => TransporterDto })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => TransporterDto)
+  transporter?: TransporterDto;
+
+  @ApiPropertyOptional({ example: "By Road / VRL Logistics" })
+  @IsString()
+  @IsOptional()
+  transporterName?: string;
+
+  @ApiPropertyOptional({ example: "DL 01 AB 1234" })
+  @IsString()
+  @IsOptional()
+  vehicleNo?: string;
+
+  @ApiPropertyOptional({ example: "2026-09-15" })
+  @IsString()
+  @IsOptional()
+  dateOfSupply?: string;
+
+  @ApiPropertyOptional({ example: "2410 0184 9281" })
+  @IsString()
+  @IsOptional()
+  eWayBillNo?: string;
+
+  @ApiPropertyOptional({ example: "2026-09-15" })
+  @IsString()
+  @IsOptional()
+  eWayBillDate?: string;
 
 }

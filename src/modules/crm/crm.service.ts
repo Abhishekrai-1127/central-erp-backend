@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { DatabaseService } from '../../core/database/database.service';
 import {
   CustomerQueryDto,
@@ -636,6 +636,146 @@ export class CrmService {
       createdDate: dt.date,
       createdTime: dt.time,
       createdAt: dt.createdAt,
+    };
+  }
+
+
+  /* ---------------- GSTIN LOOKUP & AUTOFILL ---------------- */
+
+  async lookupByGstin(rawGstin: string) {
+    if (!rawGstin) {
+      throw new BadRequestException({ message: "GSTIN is required" });
+    }
+
+    const cleanGstin = rawGstin.trim().toUpperCase().replace(/[^0-9A-Z]/g, "");
+
+    // 1. Search in crm_customers (Customer or Vendor)
+    const custRes = await this.db.query(
+      `SELECT id, type, name, company, email, phone, gst, category, status,
+              billing_address as "billingAddress", shipping_address as "shippingAddress",
+              notes, created_at as "createdAt"
+       FROM crm_customers
+       WHERE REPLACE(UPPER(gst), ' ', '') = $1 AND is_deleted = false
+       ORDER BY updated_at DESC
+       LIMIT 1`,
+      [cleanGstin],
+    );
+
+    if (custRes.rows.length > 0) {
+      const party = custRes.rows[0];
+      const stateCode = cleanGstin.slice(0, 2);
+      const isDelhi = stateCode === "07";
+      return {
+        found: true,
+        source: "crm_customers",
+        party: {
+          id: party.id,
+          name: party.name,
+          company: party.company || party.name,
+          email: party.email || "",
+          phone: party.phone || "",
+          gst: party.gst || cleanGstin,
+          gstin: party.gst || cleanGstin,
+          type: party.type || "Customer",
+          category: party.category || "General",
+          billingAddress: party.billingAddress || "",
+          shippingAddress: party.shippingAddress || party.billingAddress || "",
+          stateCode,
+          placeOfSupply: party.billingAddress || (isDelhi ? "07 - Delhi" : `${stateCode} - Outside Delhi`),
+          isDelhi,
+          isInterState: !isDelhi,
+          taxMode: isDelhi ? "CGST_SGST" : "IGST",
+        },
+      };
+    }
+
+    // 2. Search in sales_documents (previously issued invoices/orders)
+    const salesRes = await this.db.query(
+      `SELECT customer, customer_id as "customerId", gstin, place_of_supply as "placeOfSupply"
+       FROM sales_documents
+       WHERE REPLACE(UPPER(gstin), ' ', '') = $1 AND is_deleted = false
+       ORDER BY date DESC
+       LIMIT 1`,
+      [cleanGstin],
+    );
+
+    if (salesRes.rows.length > 0) {
+      const party = salesRes.rows[0];
+      const stateCode = cleanGstin.slice(0, 2);
+      const isDelhi = stateCode === "07";
+      return {
+        found: true,
+        source: "sales_documents",
+        party: {
+          id: party.customerId || null,
+          name: party.customer,
+          company: party.customer,
+          gst: party.gstin || cleanGstin,
+          gstin: party.gstin || cleanGstin,
+          type: "Customer",
+          billingAddress: party.placeOfSupply || "",
+          shippingAddress: party.placeOfSupply || "",
+          stateCode,
+          placeOfSupply: party.placeOfSupply || (isDelhi ? "07 - Delhi" : `${stateCode} - Outside Delhi`),
+          isDelhi,
+          isInterState: !isDelhi,
+          taxMode: isDelhi ? "CGST_SGST" : "IGST",
+        },
+      };
+    }
+
+    // 3. Algorithmic GSTIN Parsing (State Code, State Name, PAN, Entity Type)
+    const stateMap: Record<string, string> = {
+      "01": "Jammu & Kashmir", "02": "Himachal Pradesh", "03": "Punjab",
+      "04": "Chandigarh", "05": "Uttarakhand", "06": "Haryana",
+      "07": "Delhi", "08": "Rajasthan", "09": "Uttar Pradesh",
+      "10": "Bihar", "11": "Sikkim", "12": "Arunachal Pradesh",
+      "13": "Nagaland", "14": "Manipur", "15": "Mizoram",
+      "16": "Tripura", "17": "Meghalaya", "18": "Assam",
+      "19": "West Bengal", "20": "Jharkhand", "21": "Odisha",
+      "22": "Chhattisgarh", "23": "Madhya Pradesh", "24": "Gujarat",
+      "25": "Daman & Diu", "26": "Dadra & Nagar Haveli", "27": "Maharashtra",
+      "29": "Karnataka", "30": "Goa", "31": "Lakshadweep",
+      "32": "Kerala", "33": "Tamil Nadu", "34": "Puducherry",
+      "35": "Andaman & Nicobar Islands", "36": "Telangana", "37": "Andhra Pradesh",
+      "38": "Ladakh"
+    };
+
+    const stateCode = cleanGstin.slice(0, 2);
+    const stateName = stateMap[stateCode] || "Outside Delhi";
+    const isDelhi = stateCode === "07";
+    const isInterState = !isDelhi;
+    const pan = cleanGstin.length >= 12 ? cleanGstin.slice(2, 12) : "";
+
+    const entityTypeMap: Record<string, string> = {
+      C: "Company / Corporate",
+      P: "Proprietorship / Individual",
+      H: "Hindu Undivided Family (HUF)",
+      F: "Partnership Firm / LLP",
+      A: "Association of Persons (AOP)",
+      T: "Trust",
+      B: "Body of Individuals (BOI)",
+      L: "Local Authority",
+      J: "Artificial Juridical Person",
+      G: "Government Entity",
+    };
+    const constitutionChar = pan.length >= 4 ? pan[3] : "";
+    const entityType = entityTypeMap[constitutionChar] || "Commercial Entity";
+
+    return {
+      found: false,
+      source: "algorithmic_parser",
+      parsed: {
+        gstin: cleanGstin,
+        stateCode,
+        stateName,
+        isDelhi,
+        isInterState,
+        placeOfSupply: `${stateCode} - ${stateName}`,
+        pan,
+        entityType,
+        taxMode: isDelhi ? "CGST_SGST" : "IGST",
+      },
     };
   }
 
