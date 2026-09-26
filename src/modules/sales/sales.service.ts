@@ -72,7 +72,8 @@ export class SalesService {
   /* ---------------- CHECK INVOICE EXISTS ---------------- */
 
   async checkInvoiceExists(salesOrderNo: string) {
-    if (!salesOrderNo) {
+    const cleanSO = salesOrderNo ? String(salesOrderNo).trim() : "";
+    if (!cleanSO) {
       return { exists: false, salesOrderNo: null, invoice: null };
     }
 
@@ -82,13 +83,13 @@ export class SalesService {
        FROM sales_documents
        WHERE sales_order_no = $1 AND type = 'invoice' AND is_deleted = false
        LIMIT 1`,
-      [salesOrderNo],
+      [cleanSO],
     );
 
     const exists = res.rows.length > 0;
     return {
       exists,
-      salesOrderNo,
+      salesOrderNo: cleanSO,
       invoice: exists ? res.rows[0] : null,
     };
   }
@@ -220,11 +221,18 @@ export class SalesService {
     }
 
     // MANDATORY BUSINESS RULE: Single-Invoice Enforcement per Sales Order
-    if (dto.type === SalesDocType.INVOICE && dto.salesOrderNo) {
-      const check = await this.checkInvoiceExists(dto.salesOrderNo);
+    const cleanSalesOrderNo = dto.salesOrderNo && typeof dto.salesOrderNo === "string" && dto.salesOrderNo.trim()
+      ? dto.salesOrderNo.trim()
+      : null;
+    const cleanPoNumber = dto.poNumber && typeof dto.poNumber === "string" && dto.poNumber.trim()
+      ? dto.poNumber.trim()
+      : null;
+
+    if (dto.type === SalesDocType.INVOICE && cleanSalesOrderNo) {
+      const check = await this.checkInvoiceExists(cleanSalesOrderNo);
       if (check.exists) {
         this.logger.warn(
-          `[createDocument] Single-Invoice Rule Violated: Invoice already exists for salesOrderNo=${dto.salesOrderNo}`,
+          `[createDocument] Single-Invoice Rule Violated: Invoice already exists for salesOrderNo=${cleanSalesOrderNo}`,
         );
         throw new UnprocessableEntityException({
           statusCode: 422,
@@ -268,8 +276,8 @@ export class SalesService {
       [
         finalRefNo,
         dto.type,
-        dto.salesOrderNo || null,
-        dto.poNumber || null,
+        cleanSalesOrderNo,
+        cleanPoNumber,
         dto.date || new Date().toISOString().split('T')[0],
         dto.status || 'DRAFT',
         dto.customer,
@@ -344,7 +352,12 @@ export class SalesService {
 
     // If updating to type invoice or updating salesOrderNo on an invoice
     const targetType = dto.type ?? existing.type;
-    const targetSO = dto.salesOrderNo ?? existing.salesOrderNo;
+    const targetSO = dto.salesOrderNo !== undefined
+      ? (dto.salesOrderNo && typeof dto.salesOrderNo === "string" && dto.salesOrderNo.trim() ? dto.salesOrderNo.trim() : null)
+      : existing.salesOrderNo;
+    const targetPoNumber = dto.poNumber !== undefined
+      ? (dto.poNumber && typeof dto.poNumber === "string" && dto.poNumber.trim() ? dto.poNumber.trim() : null)
+      : existing.poNumber;
 
     if (
       targetType === SalesDocType.INVOICE &&
@@ -364,7 +377,7 @@ export class SalesService {
     const refNo = dto.refNo ?? existing.refNo;
     const type = targetType;
     const salesOrderNo = targetSO;
-    const poNumber = dto.poNumber ?? existing.poNumber;
+    const poNumber = targetPoNumber;
     const date = dto.date ?? existing.date;
     const status = dto.status ?? existing.status;
     const customer = dto.customer ?? existing.customer;
