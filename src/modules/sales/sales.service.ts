@@ -139,7 +139,7 @@ export class SalesService {
     const res = await this.db.query(
       `SELECT id, ref_no as "refNo", type, sales_order_no as "salesOrderNo",
               po_number as "poNumber", date, status, customer, customer_id as "customerId",
-              gstin, place_of_supply as "placeOfSupply", items,
+              gstin, place_of_supply as "placeOfSupply", billing_address as "billingAddress", shipping_address as "shippingAddress", items,
               subtotal, tax_total as "taxTotal", cgst_amount as "cgstAmount",
               sgst_amount as "sgstAmount", igst_amount as "igstAmount",
               grand_total as "grandTotal", valid_until as "validUntil", notes, currency, transporter, transporter_name as "transporterName", vehicle_no as "vehicleNo", date_of_supply as "dateOfSupply", eway_bill_no as "eWayBillNo", eway_bill_date as "eWayBillDate", created_at as "createdAt"
@@ -172,7 +172,7 @@ export class SalesService {
     const res = await this.db.query(
       `SELECT id, ref_no as "refNo", type, sales_order_no as "salesOrderNo",
               po_number as "poNumber", date, status, customer, customer_id as "customerId",
-              gstin, place_of_supply as "placeOfSupply", items,
+              gstin, place_of_supply as "placeOfSupply", billing_address as "billingAddress", shipping_address as "shippingAddress", items,
               subtotal, tax_total as "taxTotal", cgst_amount as "cgstAmount",
               sgst_amount as "sgstAmount", igst_amount as "igstAmount",
               grand_total as "grandTotal", valid_until as "validUntil", notes, currency, transporter, transporter_name as "transporterName", vehicle_no as "vehicleNo", date_of_supply as "dateOfSupply", eway_bill_no as "eWayBillNo", eway_bill_date as "eWayBillDate", created_at as "createdAt"
@@ -264,18 +264,20 @@ export class SalesService {
     const dateOfSupply = dto.dateOfSupply || dto.transporter?.dateOfSupply || null;
     const ewayBillNo = dto.eWayBillNo || dto.transporter?.eWayBillNo || null;
     const ewayBillDate = dto.eWayBillDate || dto.transporter?.eWayBillDate || null;
+    const billingAddress = dto.billingAddress || null;
+    const shippingAddress = dto.shippingAddress || dto.billingAddress || null;
 
     const res = await this.db.query(
       `INSERT INTO sales_documents (
         ref_no, type, sales_order_no, po_number, date, status,
-        customer, customer_id, gstin, place_of_supply, items,
+        customer, customer_id, gstin, place_of_supply, billing_address, shipping_address, items,
         subtotal, tax_total, cgst_amount, sgst_amount, igst_amount, grand_total,
         valid_until, notes, currency,
         transporter, transporter_name, vehicle_no, date_of_supply, eway_bill_no, eway_bill_date
-       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26)
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28)
        RETURNING id, ref_no as "refNo", type, sales_order_no as "salesOrderNo",
                  po_number as "poNumber", date, status, customer, customer_id as "customerId",
-                 gstin, place_of_supply as "placeOfSupply", items,
+                 gstin, place_of_supply as "placeOfSupply", billing_address as "billingAddress", shipping_address as "shippingAddress", items,
                  subtotal, tax_total as "taxTotal", cgst_amount as "cgstAmount",
                  sgst_amount as "sgstAmount", igst_amount as "igstAmount",
                  grand_total as "grandTotal", valid_until as "validUntil", notes, currency, transporter, transporter_name as "transporterName", vehicle_no as "vehicleNo", date_of_supply as "dateOfSupply", eway_bill_no as "eWayBillNo", eway_bill_date as "eWayBillDate", created_at as "createdAt"`,
@@ -290,6 +292,8 @@ export class SalesService {
         dto.customerId || null,
         dto.gstin || null,
         dto.placeOfSupply || null,
+        billingAddress,
+        shippingAddress,
         itemsJson,
         dto.subtotal || 0,
         dto.taxTotal || 0,
@@ -433,25 +437,28 @@ export class SalesService {
     const dateOfSupply = dto.dateOfSupply ?? dto.transporter?.dateOfSupply ?? existing.dateOfSupply ?? null;
     const ewayBillNo = dto.eWayBillNo ?? dto.transporter?.eWayBillNo ?? existing.eWayBillNo ?? null;
     const ewayBillDate = dto.eWayBillDate ?? dto.transporter?.eWayBillDate ?? existing.eWayBillDate ?? null;
+    const billingAddress = dto.billingAddress ?? existing.billingAddress ?? null;
+    const shippingAddress = dto.shippingAddress ?? dto.billingAddress ?? existing.shippingAddress ?? null;
 
     const res = await this.db.query(
       `UPDATE sales_documents
        SET ref_no = $1, type = $2, sales_order_no = $3, po_number = $4, date = $5,
            status = $6, customer = $7, customer_id = $8, gstin = $9, place_of_supply = $10,
-           items = $11, subtotal = $12, tax_total = $13, cgst_amount = $14,
-           sgst_amount = $15, igst_amount = $16, grand_total = $17,
-           transporter = $18, transporter_name = $19, vehicle_no = $20,
-           date_of_supply = $21, eway_bill_no = $22, eway_bill_date = $23, updated_at = NOW()
-       WHERE id = $24 AND is_deleted = false
+           billing_address = $11, shipping_address = $12,
+           items = $13, subtotal = $14, tax_total = $15, cgst_amount = $16,
+           sgst_amount = $17, igst_amount = $18, grand_total = $19,
+           transporter = $20, transporter_name = $21, vehicle_no = $22,
+           date_of_supply = $23, eway_bill_no = $24, eway_bill_date = $25, updated_at = NOW()
+       WHERE id = $26 AND is_deleted = false
        RETURNING id, ref_no as "refNo", type, sales_order_no as "salesOrderNo",
                  po_number as "poNumber", date, status, customer, customer_id as "customerId",
-                 gstin, place_of_supply as "placeOfSupply", items,
+                 gstin, place_of_supply as "placeOfSupply", billing_address as "billingAddress", shipping_address as "shippingAddress", items,
                  subtotal, tax_total as "taxTotal", cgst_amount as "cgstAmount",
                  sgst_amount as "sgstAmount", igst_amount as "igstAmount",
                  grand_total as "grandTotal", valid_until as "validUntil", notes, currency, transporter, transporter_name as "transporterName", vehicle_no as "vehicleNo", date_of_supply as "dateOfSupply", eway_bill_no as "eWayBillNo", eway_bill_date as "eWayBillDate", created_at as "createdAt"`,
       [
         refNo, type, salesOrderNo, poNumber, date, status,
-        customer, customerId, gstin, placeOfSupply, itemsJson,
+        customer, customerId, gstin, placeOfSupply, billingAddress, shippingAddress, itemsJson,
         subtotal, taxTotal, cgstAmount, sgstAmount, igstAmount, grandTotal,
         transporterJson, transporterName, vehicleNo, dateOfSupply, ewayBillNo, ewayBillDate, existing.id,
       ],

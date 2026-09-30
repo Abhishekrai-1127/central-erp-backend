@@ -80,12 +80,12 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
         CREATE TABLE IF NOT EXISTS crm_customers (
             id VARCHAR(100) PRIMARY KEY DEFAULT ('cust-' || SUBSTRING(gen_random_uuid()::text, 1, 8)),
             type VARCHAR(50) NOT NULL DEFAULT 'Customer',
-            name VARCHAR(255) NOT NULL,
-            company VARCHAR(255) NOT NULL,
-            email VARCHAR(255),
-            phone VARCHAR(50),
-            gst VARCHAR(50),
-            category VARCHAR(100),
+            name TEXT NOT NULL,
+            company TEXT NOT NULL,
+            email TEXT,
+            phone TEXT,
+            gst TEXT,
+            category TEXT,
             status VARCHAR(50) NOT NULL DEFAULT 'Active',
             numeric_outstanding NUMERIC(15,2) DEFAULT 0.00,
             numeric_credit_limit NUMERIC(15,2) DEFAULT 0.00,
@@ -100,22 +100,28 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
         );
       `);
       // Existing installations already have this table, so add the newly accepted
-      // frontend display fields without requiring a destructive table rebuild.
+      // frontend display fields and widen columns to TEXT to prevent truncation errors.
       await this.pool.query(`
         ALTER TABLE crm_customers
           ADD COLUMN IF NOT EXISTS outstanding TEXT,
           ADD COLUMN IF NOT EXISTS credit_limit TEXT,
           ADD COLUMN IF NOT EXISTS stage VARCHAR(50) DEFAULT 'New',
-          ADD COLUMN IF NOT EXISTS source VARCHAR(100) DEFAULT 'Inbound Web Inquiry';
+          ADD COLUMN IF NOT EXISTS source TEXT DEFAULT 'Inbound Web Inquiry',
+          ALTER COLUMN name TYPE TEXT,
+          ALTER COLUMN company TYPE TEXT,
+          ALTER COLUMN email TYPE TEXT,
+          ALTER COLUMN phone TYPE TEXT,
+          ALTER COLUMN gst TYPE TEXT,
+          ALTER COLUMN category TYPE TEXT;
       `);
       await this.pool.query(`
         CREATE TABLE IF NOT EXISTS crm_leads (
             id VARCHAR(100) PRIMARY KEY DEFAULT ('lead-' || SUBSTRING(gen_random_uuid()::text, 1, 8)),
-            name VARCHAR(255) NOT NULL,
-            company VARCHAR(255) NOT NULL,
-            email VARCHAR(255),
-            phone VARCHAR(50),
-            source VARCHAR(100) DEFAULT 'Direct Outreach',
+            name TEXT NOT NULL,
+            company TEXT NOT NULL,
+            email TEXT,
+            phone TEXT,
+            source TEXT DEFAULT 'Direct Outreach',
             numeric_value NUMERIC(15,2) DEFAULT 0.00,
             stage VARCHAR(50) DEFAULT 'New',
             score INT DEFAULT 50,
@@ -126,11 +132,19 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
         );
       `);
       await this.pool.query(`
+        ALTER TABLE crm_leads
+          ALTER COLUMN name TYPE TEXT,
+          ALTER COLUMN company TYPE TEXT,
+          ALTER COLUMN email TYPE TEXT,
+          ALTER COLUMN phone TYPE TEXT,
+          ALTER COLUMN source TYPE TEXT;
+      `);
+      await this.pool.query(`
         CREATE TABLE IF NOT EXISTS crm_deals (
             id VARCHAR(100) PRIMARY KEY DEFAULT ('deal-' || SUBSTRING(gen_random_uuid()::text, 1, 8)),
-            title VARCHAR(255) NOT NULL,
-            customer_id VARCHAR(100),
-            customer_name VARCHAR(255),
+            title TEXT NOT NULL,
+            customer_id TEXT,
+            customer_name TEXT,
             value NUMERIC(15,2) DEFAULT 0.00,
             stage VARCHAR(50) DEFAULT 'Proposal',
             expected_close_date DATE,
@@ -140,28 +154,36 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
         );
       `);
       await this.pool.query(`
+        ALTER TABLE crm_deals
+          ALTER COLUMN title TYPE TEXT,
+          ALTER COLUMN customer_id TYPE TEXT,
+          ALTER COLUMN customer_name TYPE TEXT;
+      `);
+      await this.pool.query(`
         CREATE TABLE IF NOT EXISTS crm_activities (
             id VARCHAR(100) PRIMARY KEY DEFAULT ('act-' || SUBSTRING(gen_random_uuid()::text, 1, 8)),
-            entity_id VARCHAR(100) NOT NULL,
+            entity_id TEXT NOT NULL,
             type VARCHAR(50) NOT NULL DEFAULT 'Note',
             notes TEXT NOT NULL,
-            created_by_name VARCHAR(255),
+            created_by_name TEXT,
             created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
         );
       `);
       await this.pool.query(`
         CREATE TABLE IF NOT EXISTS sales_documents (
             id VARCHAR(100) PRIMARY KEY DEFAULT ('INV-' || SUBSTRING(gen_random_uuid()::text, 1, 8)),
-            ref_no VARCHAR(100) NOT NULL,
+            ref_no TEXT NOT NULL,
             type VARCHAR(50) NOT NULL DEFAULT 'invoice',
-            sales_order_no VARCHAR(100),
-            po_number VARCHAR(100),
+            sales_order_no TEXT,
+            po_number TEXT,
             date DATE NOT NULL DEFAULT CURRENT_DATE,
             status VARCHAR(50) NOT NULL DEFAULT 'DRAFT',
-            customer VARCHAR(255) NOT NULL,
-            customer_id VARCHAR(100),
-            gstin VARCHAR(50),
+            customer TEXT NOT NULL,
+            customer_id TEXT,
+            gstin TEXT,
             place_of_supply TEXT,
+            billing_address TEXT,
+            shipping_address TEXT,
             items JSONB NOT NULL DEFAULT '[]'::jsonb,
             subtotal NUMERIC(15,2) DEFAULT 0.00,
             tax_total NUMERIC(15,2) DEFAULT 0.00,
@@ -178,34 +200,46 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
         ALTER TABLE sales_documents
           ADD COLUMN IF NOT EXISTS valid_until DATE,
           ADD COLUMN IF NOT EXISTS notes TEXT,
-          ADD COLUMN IF NOT EXISTS currency VARCHAR(20) DEFAULT 'INR (₹)',
+          ADD COLUMN IF NOT EXISTS currency TEXT DEFAULT 'INR (₹)',
           ADD COLUMN IF NOT EXISTS transporter JSONB DEFAULT '{}'::jsonb,
-          ADD COLUMN IF NOT EXISTS transporter_name VARCHAR(255),
-          ADD COLUMN IF NOT EXISTS vehicle_no VARCHAR(100),
+          ADD COLUMN IF NOT EXISTS transporter_name TEXT,
+          ADD COLUMN IF NOT EXISTS vehicle_no TEXT,
           ADD COLUMN IF NOT EXISTS date_of_supply DATE,
-          ADD COLUMN IF NOT EXISTS eway_bill_no VARCHAR(100),
+          ADD COLUMN IF NOT EXISTS eway_bill_no TEXT,
           ADD COLUMN IF NOT EXISTS eway_bill_date DATE,
-          ALTER COLUMN place_of_supply TYPE TEXT;
+          ADD COLUMN IF NOT EXISTS billing_address TEXT,
+          ADD COLUMN IF NOT EXISTS shipping_address TEXT,
+          ALTER COLUMN ref_no TYPE TEXT,
+          ALTER COLUMN sales_order_no TYPE TEXT,
+          ALTER COLUMN po_number TYPE TEXT,
+          ALTER COLUMN customer TYPE TEXT,
+          ALTER COLUMN customer_id TYPE TEXT,
+          ALTER COLUMN gstin TYPE TEXT,
+          ALTER COLUMN place_of_supply TYPE TEXT,
+          ALTER COLUMN transporter_name TYPE TEXT,
+          ALTER COLUMN vehicle_no TYPE TEXT,
+          ALTER COLUMN eway_bill_no TYPE TEXT,
+          ALTER COLUMN currency TYPE TEXT;
       `);
       await this.pool.query(`
         CREATE TABLE IF NOT EXISTS purchase_records (
             id VARCHAR(100) PRIMARY KEY DEFAULT ('PUR-' || SUBSTRING(gen_random_uuid()::text, 1, 8)),
-            ref_no VARCHAR(100),
+            ref_no TEXT,
             type VARCHAR(50) NOT NULL DEFAULT 'rfo',
-            vendor VARCHAR(255) NOT NULL,
-            vendor_invoice_no VARCHAR(100),
+            vendor TEXT NOT NULL,
+            vendor_invoice_no TEXT,
             request_date DATE,
             bill_date DATE,
             due_date DATE,
             purchase_date DATE,
             numeric_amount NUMERIC(15,2) DEFAULT 0.00,
-            department VARCHAR(100),
+            department TEXT,
             priority VARCHAR(50) DEFAULT 'NORMAL',
-            asset_tag VARCHAR(100),
-            name VARCHAR(255),
-            model VARCHAR(255),
+            asset_tag TEXT,
+            name TEXT,
+            model TEXT,
             numeric_cost NUMERIC(15,2) DEFAULT 0.00,
-            location VARCHAR(255),
+            location TEXT,
             status VARCHAR(50) NOT NULL DEFAULT 'PENDING',
             is_deleted BOOLEAN DEFAULT FALSE,
             created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
@@ -213,12 +247,23 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
         );
       `);
       await this.pool.query(`
+        ALTER TABLE purchase_records
+          ALTER COLUMN ref_no TYPE TEXT,
+          ALTER COLUMN vendor TYPE TEXT,
+          ALTER COLUMN vendor_invoice_no TYPE TEXT,
+          ALTER COLUMN department TYPE TEXT,
+          ALTER COLUMN asset_tag TYPE TEXT,
+          ALTER COLUMN name TYPE TEXT,
+          ALTER COLUMN model TYPE TEXT,
+          ALTER COLUMN location TYPE TEXT;
+      `);
+      await this.pool.query(`
         CREATE TABLE IF NOT EXISTS inventory_products (
             id VARCHAR(100) PRIMARY KEY DEFAULT ('PROD-' || SUBSTRING(gen_random_uuid()::text, 1, 8)),
-            name VARCHAR(255) NOT NULL,
+            name TEXT NOT NULL,
             sku VARCHAR(100) NOT NULL UNIQUE,
-            category VARCHAR(100) NOT NULL,
-            warehouse VARCHAR(255) DEFAULT 'Suraj Main Factory Warehouse (Bay A)',
+            category TEXT NOT NULL,
+            warehouse TEXT DEFAULT 'Suraj Main Factory Warehouse (Bay A)',
             stock INT DEFAULT 0,
             min_reorder INT DEFAULT 10,
             unit_price NUMERIC(15,2) DEFAULT 0.00,
@@ -230,24 +275,36 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
         );
       `);
       await this.pool.query(`
+        ALTER TABLE inventory_products
+          ALTER COLUMN name TYPE TEXT,
+          ALTER COLUMN warehouse TYPE TEXT,
+          ALTER COLUMN category TYPE TEXT;
+      `);
+      await this.pool.query(`
         CREATE TABLE IF NOT EXISTS inventory_movements (
             id VARCHAR(100) PRIMARY KEY DEFAULT ('MOV-' || SUBSTRING(gen_random_uuid()::text, 1, 8)),
             product_id VARCHAR(100) REFERENCES inventory_products(id) ON DELETE CASCADE,
-            product_name VARCHAR(255) NOT NULL,
+            product_name TEXT NOT NULL,
             sku VARCHAR(100) NOT NULL,
             type VARCHAR(50) NOT NULL,
             quantity VARCHAR(50) NOT NULL,
             numeric_quantity INT NOT NULL,
-            reference_no VARCHAR(100),
+            reference_no TEXT,
             date_time TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-            created_by_user VARCHAR(255)
+            created_by_user TEXT
         );
+      `);
+      await this.pool.query(`
+        ALTER TABLE inventory_movements
+          ALTER COLUMN product_name TYPE TEXT,
+          ALTER COLUMN reference_no TYPE TEXT,
+          ALTER COLUMN created_by_user TYPE TEXT;
       `);
       await this.pool.query(`
         CREATE TABLE IF NOT EXISTS finance_accounts (
             id VARCHAR(100) PRIMARY KEY DEFAULT ('ACC-' || SUBSTRING(gen_random_uuid()::text, 1, 8)),
             account_code VARCHAR(50) UNIQUE NOT NULL,
-            account_name VARCHAR(255) NOT NULL,
+            account_name TEXT NOT NULL,
             account_type VARCHAR(50) NOT NULL,
             balance NUMERIC(15,2) DEFAULT 0.00,
             currency VARCHAR(10) DEFAULT 'INR',
@@ -257,14 +314,18 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
         );
       `);
       await this.pool.query(`
+        ALTER TABLE finance_accounts
+          ALTER COLUMN account_name TYPE TEXT;
+      `);
+      await this.pool.query(`
         CREATE TABLE IF NOT EXISTS finance_vouchers (
             id VARCHAR(100) PRIMARY KEY DEFAULT ('VOUCH-' || SUBSTRING(gen_random_uuid()::text, 1, 8)),
             voucher_no VARCHAR(100) UNIQUE NOT NULL,
             type VARCHAR(50) NOT NULL,
             date DATE NOT NULL DEFAULT CURRENT_DATE,
             amount NUMERIC(15,2) DEFAULT 0.00,
-            debit_account VARCHAR(255) NOT NULL,
-            credit_account VARCHAR(255) NOT NULL,
+            debit_account TEXT NOT NULL,
+            credit_account TEXT NOT NULL,
             narration TEXT,
             status VARCHAR(50) DEFAULT 'POSTED',
             is_deleted BOOLEAN DEFAULT FALSE,
@@ -272,10 +333,15 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
         );
       `);
       await this.pool.query(`
+        ALTER TABLE finance_vouchers
+          ALTER COLUMN debit_account TYPE TEXT,
+          ALTER COLUMN credit_account TYPE TEXT;
+      `);
+      await this.pool.query(`
         CREATE TABLE IF NOT EXISTS manufacturing_boms (
             id VARCHAR(100) PRIMARY KEY DEFAULT ('BOM-' || SUBSTRING(gen_random_uuid()::text, 1, 8)),
             bom_no VARCHAR(100) UNIQUE NOT NULL,
-            product_name VARCHAR(255) NOT NULL,
+            product_name TEXT NOT NULL,
             sku VARCHAR(100) NOT NULL,
             components JSONB NOT NULL DEFAULT '[]'::jsonb,
             total_cost NUMERIC(15,2) DEFAULT 0.00,
@@ -284,10 +350,14 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
         );
       `);
       await this.pool.query(`
+        ALTER TABLE manufacturing_boms
+          ALTER COLUMN product_name TYPE TEXT;
+      `);
+      await this.pool.query(`
         CREATE TABLE IF NOT EXISTS manufacturing_work_orders (
             id VARCHAR(100) PRIMARY KEY DEFAULT ('WO-' || SUBSTRING(gen_random_uuid()::text, 1, 8)),
             work_order_no VARCHAR(100) UNIQUE NOT NULL,
-            product_name VARCHAR(255) NOT NULL,
+            product_name TEXT NOT NULL,
             sku VARCHAR(100) NOT NULL,
             target_qty INT NOT NULL,
             completed_qty INT DEFAULT 0,
@@ -297,6 +367,10 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
             is_deleted BOOLEAN DEFAULT FALSE,
             created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
         );
+      `);
+      await this.pool.query(`
+        ALTER TABLE manufacturing_work_orders
+          ALTER COLUMN product_name TYPE TEXT;
       `);
       this.logger.log('Database tables successfully verified/created.');
     } catch (err: any) {

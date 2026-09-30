@@ -649,82 +649,6 @@ export class CrmService {
 
     const cleanGstin = rawGstin.trim().toUpperCase().replace(/[^0-9A-Z]/g, "");
 
-    // 1. Search in crm_customers (Customer or Vendor)
-    const custRes = await this.db.query(
-      `SELECT id, type, name, company, email, phone, gst, category, status,
-              billing_address as "billingAddress", shipping_address as "shippingAddress",
-              notes, created_at as "createdAt"
-       FROM crm_customers
-       WHERE REPLACE(UPPER(gst), ' ', '') = $1 AND is_deleted = false
-       ORDER BY updated_at DESC
-       LIMIT 1`,
-      [cleanGstin],
-    );
-
-    if (custRes.rows.length > 0) {
-      const party = custRes.rows[0];
-      const stateCode = cleanGstin.slice(0, 2);
-      const isDelhi = stateCode === "07";
-      return {
-        found: true,
-        source: "crm_customers",
-        party: {
-          id: party.id,
-          name: party.name,
-          company: party.company || party.name,
-          email: party.email || "",
-          phone: party.phone || "",
-          gst: party.gst || cleanGstin,
-          gstin: party.gst || cleanGstin,
-          type: party.type || "Customer",
-          category: party.category || "General",
-          billingAddress: party.billingAddress || "",
-          shippingAddress: party.shippingAddress || party.billingAddress || "",
-          stateCode,
-          placeOfSupply: party.billingAddress || (isDelhi ? "07 - Delhi" : `${stateCode} - Outside Delhi`),
-          isDelhi,
-          isInterState: !isDelhi,
-          taxMode: isDelhi ? "CGST_SGST" : "IGST",
-        },
-      };
-    }
-
-    // 2. Search in sales_documents (previously issued invoices/orders)
-    const salesRes = await this.db.query(
-      `SELECT customer, customer_id as "customerId", gstin, place_of_supply as "placeOfSupply"
-       FROM sales_documents
-       WHERE REPLACE(UPPER(gstin), ' ', '') = $1 AND is_deleted = false
-       ORDER BY date DESC
-       LIMIT 1`,
-      [cleanGstin],
-    );
-
-    if (salesRes.rows.length > 0) {
-      const party = salesRes.rows[0];
-      const stateCode = cleanGstin.slice(0, 2);
-      const isDelhi = stateCode === "07";
-      return {
-        found: true,
-        source: "sales_documents",
-        party: {
-          id: party.customerId || null,
-          name: party.customer,
-          company: party.customer,
-          gst: party.gstin || cleanGstin,
-          gstin: party.gstin || cleanGstin,
-          type: "Customer",
-          billingAddress: party.placeOfSupply || "",
-          shippingAddress: party.placeOfSupply || "",
-          stateCode,
-          placeOfSupply: party.placeOfSupply || (isDelhi ? "07 - Delhi" : `${stateCode} - Outside Delhi`),
-          isDelhi,
-          isInterState: !isDelhi,
-          taxMode: isDelhi ? "CGST_SGST" : "IGST",
-        },
-      };
-    }
-
-    // 3. Algorithmic GSTIN Parsing (State Code, State Name, PAN, Entity Type)
     const stateMap: Record<string, string> = {
       "01": "Jammu & Kashmir", "02": "Himachal Pradesh", "03": "Punjab",
       "04": "Chandigarh", "05": "Uttarakhand", "06": "Haryana",
@@ -742,9 +666,84 @@ export class CrmService {
     };
 
     const stateCode = cleanGstin.slice(0, 2);
-    const stateName = stateMap[stateCode] || "Outside Delhi";
+    const stateName = stateMap[stateCode] || (stateCode === "07" ? "Delhi" : "Outside Delhi");
     const isDelhi = stateCode === "07";
     const isInterState = !isDelhi;
+    const gstPlaceOfSupply = `${stateCode} - ${stateName}`;
+
+    // 1. Search in crm_customers (Customer or Vendor)
+    const custRes = await this.db.query(
+      `SELECT id, type, name, company, email, phone, gst, category, status,
+              billing_address as "billingAddress", shipping_address as "shippingAddress",
+              notes, created_at as "createdAt"
+       FROM crm_customers
+       WHERE REPLACE(UPPER(gst), ' ', '') = $1 AND is_deleted = false
+       ORDER BY updated_at DESC
+       LIMIT 1`,
+      [cleanGstin],
+    );
+
+    if (custRes.rows.length > 0) {
+      const party = custRes.rows[0];
+      return {
+        found: true,
+        source: "crm_customers",
+        party: {
+          id: party.id,
+          name: party.name,
+          company: party.company || party.name,
+          email: party.email || "",
+          phone: party.phone || "",
+          gst: party.gst || cleanGstin,
+          gstin: party.gst || cleanGstin,
+          type: party.type || "Customer",
+          category: party.category || "General",
+          billingAddress: party.billingAddress || "",
+          shippingAddress: party.shippingAddress || party.billingAddress || "",
+          stateCode,
+          placeOfSupply: gstPlaceOfSupply,
+          isDelhi,
+          isInterState,
+          taxMode: isDelhi ? "CGST_SGST" : "IGST",
+        },
+      };
+    }
+
+    // 2. Search in sales_documents (previously issued invoices/orders)
+    const salesRes = await this.db.query(
+      `SELECT customer, customer_id as "customerId", gstin, place_of_supply as "placeOfSupply",
+              billing_address as "billingAddress", shipping_address as "shippingAddress"
+       FROM sales_documents
+       WHERE REPLACE(UPPER(gstin), ' ', '') = $1 AND is_deleted = false
+       ORDER BY date DESC
+       LIMIT 1`,
+      [cleanGstin],
+    );
+
+    if (salesRes.rows.length > 0) {
+      const party = salesRes.rows[0];
+      return {
+        found: true,
+        source: "sales_documents",
+        party: {
+          id: party.customerId || null,
+          name: party.customer,
+          company: party.customer,
+          gst: party.gstin || cleanGstin,
+          gstin: party.gstin || cleanGstin,
+          type: "Customer",
+          billingAddress: party.billingAddress || party.placeOfSupply || "",
+          shippingAddress: party.shippingAddress || party.placeOfSupply || "",
+          stateCode,
+          placeOfSupply: gstPlaceOfSupply,
+          isDelhi,
+          isInterState,
+          taxMode: isDelhi ? "CGST_SGST" : "IGST",
+        },
+      };
+    }
+
+    // 3. Algorithmic GSTIN Parsing (State Code, State Name, PAN, Entity Type)
     const pan = cleanGstin.length >= 12 ? cleanGstin.slice(2, 12) : "";
 
     const entityTypeMap: Record<string, string> = {
@@ -771,7 +770,7 @@ export class CrmService {
         stateName,
         isDelhi,
         isInterState,
-        placeOfSupply: `${stateCode} - ${stateName}`,
+        placeOfSupply: gstPlaceOfSupply,
         pan,
         entityType,
         taxMode: isDelhi ? "CGST_SGST" : "IGST",

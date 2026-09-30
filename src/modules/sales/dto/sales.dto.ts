@@ -183,6 +183,16 @@ export class CreateSalesDocDto {
   @IsOptional()
   placeOfSupply?: string;
 
+  @ApiPropertyOptional({ example: 'Khewat No.432, Sonipat, Haryana' })
+  @IsString()
+  @IsOptional()
+  billingAddress?: string;
+
+  @ApiPropertyOptional({ example: 'Khewat No.432, Sonipat, Haryana' })
+  @IsString()
+  @IsOptional()
+  shippingAddress?: string;
+
   @ApiProperty({ type: [LineItemDto] })
   @IsArray()
   @ValidateNested({ each: true })
@@ -317,6 +327,16 @@ export class UpdateSalesDocDto {
   @IsString()
   @IsOptional()
   placeOfSupply?: string;
+
+  @ApiPropertyOptional({ example: 'Khewat No.432, Sonipat, Haryana' })
+  @IsString()
+  @IsOptional()
+  billingAddress?: string;
+
+  @ApiPropertyOptional({ example: 'Khewat No.432, Sonipat, Haryana' })
+  @IsString()
+  @IsOptional()
+  shippingAddress?: string;
 
   @ApiPropertyOptional({ type: [LineItemDto] })
   @IsArray()
