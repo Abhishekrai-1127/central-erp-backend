@@ -177,7 +177,7 @@ export class SalesService {
               sgst_amount as "sgstAmount", igst_amount as "igstAmount",
               grand_total as "grandTotal", valid_until as "validUntil", notes, currency, transporter, transporter_name as "transporterName", vehicle_no as "vehicleNo", date_of_supply as "dateOfSupply", eway_bill_no as "eWayBillNo", eway_bill_date as "eWayBillDate", created_at as "createdAt"
        FROM sales_documents
-       WHERE id = $1 AND is_deleted = false`,
+       WHERE (id = $1 OR ref_no = $1) AND is_deleted = false`,
       [id],
     );
 
@@ -242,7 +242,13 @@ export class SalesService {
       }
     }
 
-    const itemsJson = JSON.stringify(dto.items || []);
+    const sanitizedItems = Array.isArray(dto.items)
+      ? dto.items.map((it: any) => ({
+          ...it,
+          hsnSac: it.hsnSac?.trim() || "84145930",
+        }))
+      : [];
+    const itemsJson = JSON.stringify(sanitizedItems);
 
     const transporterObj = dto.transporter || {
       name: dto.transporterName || "",
@@ -348,7 +354,22 @@ export class SalesService {
   /* ---------------- UPDATE SALES DOCUMENT ---------------- */
 
   async updateDocument(id: string, dto: UpdateSalesDocDto) {
-    const existing = await this.getDocumentById(id);
+    let existing: any;
+    try {
+      existing = await this.getDocumentById(id);
+    } catch (err) {
+      if (err instanceof NotFoundException) {
+        // Document not found in DB - Auto-provision / upsert
+        const createPayload: any = {
+          ...dto,
+          refNo: dto.refNo || id,
+          type: dto.type || (id.startsWith("INV-") ? SalesDocType.INVOICE : id.startsWith("PAY-") ? SalesDocType.PAYMENT : id.startsWith("SO-") ? SalesDocType.SALES_ORDER : SalesDocType.INVOICE),
+          customer: dto.customer || "General Customer",
+        };
+        return this.createDocument(createPayload);
+      }
+      throw err;
+    }
 
     // If updating to type invoice or updating salesOrderNo on an invoice
     const targetType = dto.type ?? existing.type;
@@ -384,7 +405,13 @@ export class SalesService {
     const customerId = dto.customerId ?? existing.customerId;
     const gstin = dto.gstin ?? existing.gstin;
     const placeOfSupply = dto.placeOfSupply ?? existing.placeOfSupply;
-    const itemsJson = dto.items ? JSON.stringify(dto.items) : JSON.stringify(existing.items);
+    const sanitizedUpdateItems = dto.items && Array.isArray(dto.items)
+      ? dto.items.map((it: any) => ({
+          ...it,
+          hsnSac: it.hsnSac?.trim() || "84145930",
+        }))
+      : null;
+    const itemsJson = sanitizedUpdateItems ? JSON.stringify(sanitizedUpdateItems) : JSON.stringify(existing.items);
     const subtotal = dto.subtotal ?? existing.subtotal;
     const taxTotal = dto.taxTotal ?? existing.taxTotal;
     const cgstAmount = dto.cgstAmount ?? existing.cgstAmount;
@@ -426,7 +453,7 @@ export class SalesService {
         refNo, type, salesOrderNo, poNumber, date, status,
         customer, customerId, gstin, placeOfSupply, itemsJson,
         subtotal, taxTotal, cgstAmount, sgstAmount, igstAmount, grandTotal,
-        transporterJson, transporterName, vehicleNo, dateOfSupply, ewayBillNo, ewayBillDate, id,
+        transporterJson, transporterName, vehicleNo, dateOfSupply, ewayBillNo, ewayBillDate, existing.id,
       ],
     );
 
@@ -446,7 +473,7 @@ export class SalesService {
 
   async deleteDocument(id: string) {
     const res = await this.db.query(
-      `UPDATE sales_documents SET is_deleted = true, updated_at = NOW() WHERE id = $1 AND is_deleted = false RETURNING id`,
+      `UPDATE sales_documents SET is_deleted = true, updated_at = NOW() WHERE (id = $1 OR ref_no = $1) AND is_deleted = false RETURNING id`,
       [id],
     );
 
