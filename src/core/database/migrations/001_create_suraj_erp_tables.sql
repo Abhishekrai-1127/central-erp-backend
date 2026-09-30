@@ -112,7 +112,7 @@ CREATE TABLE IF NOT EXISTS sales_documents (
     customer VARCHAR(255) NOT NULL,
     customer_id VARCHAR(100),
     gstin VARCHAR(50),
-    place_of_supply VARCHAR(100),
+    place_of_supply TEXT,
     items JSONB NOT NULL DEFAULT '[]'::jsonb,
     subtotal NUMERIC(15,2) DEFAULT 0.00,
     tax_total NUMERIC(15,2) DEFAULT 0.00,
