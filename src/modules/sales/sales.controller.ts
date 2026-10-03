@@ -93,6 +93,33 @@ export class SalesController {
     return this.salesService.updateDocument(id, updateSalesDocDto);
   }
 
+    @Get('deleted-documents')
+  @Roles(UserRole.ADMIN, UserRole.SALES_REP, UserRole.ACCOUNTANT)
+  @ApiOperation({ summary: 'Get archived/deleted sales documents' })
+  @ApiResponse({ status: 200, description: 'Returns archived deleted documents.' })
+  getDeletedDocuments(@Query() query: { type?: string; search?: string; page?: number; limit?: number }) {
+    return this.salesService.getDeletedDocuments(query);
+  }
+
+  @Post('deleted-documents/:id/restore')
+  @Roles(UserRole.ADMIN, UserRole.SALES_REP, UserRole.ACCOUNTANT)
+  @ApiOperation({ summary: 'Restore an archived/deleted sales document back to active' })
+  @ApiResponse({ status: 200, description: 'Document restored successfully.' })
+  @ApiResponse({ status: 404, description: 'Archived document not found.' })
+  @ApiResponse({ status: 422, description: 'Original reference number is occupied.' })
+  restoreDeletedDocument(@Param('id') id: string) {
+    return this.salesService.restoreDeletedDocument(id);
+  }
+
+  @Delete('deleted-documents/:id/permanent')
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Permanently purge a sales document from archive' })
+  @ApiResponse({ status: 200, description: 'Document permanently purged.' })
+  @ApiResponse({ status: 404, description: 'Archived document not found.' })
+  permanentlyDeleteDocument(@Param('id') id: string) {
+    return this.salesService.permanentlyDeleteDocument(id);
+  }
+
   @Delete('documents/:id')
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Delete / Soft-delete sales document' })

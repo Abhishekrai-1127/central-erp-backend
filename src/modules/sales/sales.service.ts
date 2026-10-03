@@ -476,18 +476,283 @@ export class SalesService {
     };
   }
 
-  /* ---------------- DELETE SALES DOCUMENT (SOFT DELETE) ---------------- */
+  /* ---------------- ARCHIVE AND DELETE SALES DOCUMENT ---------------- */
 
-  async deleteDocument(id: string) {
-    const res = await this.db.query(
-      `UPDATE sales_documents SET is_deleted = true, updated_at = NOW() WHERE (id = $1 OR ref_no = $1) AND is_deleted = false RETURNING id`,
+  async deleteDocument(id: string, deletedBy = "Admin", reason = "") {
+    const docRes = await this.db.query(
+      `SELECT * FROM sales_documents WHERE (id = $1 OR ref_no = $1) LIMIT 1`,
       [id],
     );
 
-    if (res.rows.length === 0) {
+    if (docRes.rows.length === 0) {
       throw new NotFoundException({ message: `Sales document with ID ${id} not found` });
     }
 
-    return { message: `Sales document ${id} soft-deleted successfully` };
+    const doc = docRes.rows[0];
+    const client = await this.db.getClient();
+    try {
+      await client.query("BEGIN");
+      await client.query(
+        `INSERT INTO deleted_sales_documents (
+          original_id, original_ref_no, type, sales_order_no, po_number, date, status,
+          customer, customer_id, gstin, place_of_supply, billing_address, shipping_address,
+          items, subtotal, tax_total, cgst_amount, sgst_amount, igst_amount, grand_total,
+          valid_until, notes, currency, transporter, transporter_name, vehicle_no,
+          date_of_supply, eway_bill_no, eway_bill_date, deleted_at, deleted_by, delete_reason, document_data
+        ) VALUES (
+          $1, $2, $3, $4, $5, $6, $7,
+          $8, $9, $10, $11, $12, $13,
+          $14, $15, $16, $17, $18, $19, $20,
+          $21, $22, $23, $24, $25, $26,
+          $27, $28, $29, NOW(), $30, $31, $32
+        )`,
+        [
+          doc.id,
+          doc.ref_no,
+          doc.type,
+          doc.sales_order_no,
+          doc.po_number,
+          doc.date,
+          "DELETED",
+          doc.customer,
+          doc.customer_id,
+          doc.gstin,
+          doc.place_of_supply,
+          doc.billing_address,
+          doc.shipping_address,
+          typeof doc.items === "string" ? doc.items : JSON.stringify(doc.items || []),
+          doc.subtotal,
+          doc.tax_total,
+          doc.cgst_amount,
+          doc.sgst_amount,
+          doc.igst_amount,
+          doc.grand_total,
+          doc.valid_until,
+          doc.notes,
+          doc.currency,
+          typeof doc.transporter === "string" ? doc.transporter : JSON.stringify(doc.transporter || {}),
+          doc.transporter_name,
+          doc.vehicle_no,
+          doc.date_of_supply,
+          doc.eway_bill_no,
+          doc.eway_bill_date,
+          deletedBy,
+          reason,
+          JSON.stringify(doc),
+        ],
+      );
+
+      // Hard-delete from active table to instantly release the ID and ref_no
+      await client.query(`DELETE FROM sales_documents WHERE id = $1`, [doc.id]);
+      await client.query("COMMIT");
+
+      this.logger.log(`Document ${doc.ref_no} (${doc.id}) moved to deleted_sales_documents archive.`);
+      return {
+        success: true,
+        message: `Sales document ${doc.ref_no} moved to deleted archive. Reference number is now free.`,
+        originalRefNo: doc.ref_no,
+        originalId: doc.id,
+      };
+    } catch (err) {
+      await client.query("ROLLBACK");
+      this.logger.error(`Failed to archive and delete document ${id}: ${err.message}`, err.stack);
+      throw err;
+    } finally {
+      client.release();
+    }
+  }
+
+  /* ---------------- GET DELETED / ARCHIVED DOCUMENTS ---------------- */
+
+  async getDeletedDocuments(query: { type?: string; search?: string; page?: number; limit?: number }) {
+    const { type, search, page = 1, limit = 50 } = query;
+    const pageNum = Math.max(1, Number(page));
+    const limitNum = Math.max(1, Math.min(100, Number(limit)));
+    const offset = (pageNum - 1) * limitNum;
+
+    const conditions: string[] = ["1=1"];
+    const params: any[] = [];
+
+    if (type && type !== "all") {
+      params.push(type.toLowerCase());
+      conditions.push(`LOWER(type) = ${params.length}`);
+    }
+
+    if (search && search.trim()) {
+      const s = `%${search.trim().toLowerCase()}%`;
+      params.push(s);
+      const pIdx = params.length;
+      conditions.push(
+        `(LOWER(original_ref_no) LIKE ${pIdx} OR LOWER(customer) LIKE ${pIdx} OR LOWER(COALESCE(gstin, '')) LIKE ${pIdx} OR LOWER(COALESCE(sales_order_no, '')) LIKE ${pIdx} OR LOWER(COALESCE(po_number, '')) LIKE ${pIdx})`
+      );
+    }
+
+    const whereClause = conditions.join(" AND ");
+
+    const countRes = await this.db.query(
+      `SELECT COUNT(*)::int as total FROM deleted_sales_documents WHERE ${whereClause}`,
+      params,
+    );
+    const total = countRes.rows[0]?.total || 0;
+
+    const dataRes = await this.db.query(
+      `SELECT archive_id as "archiveId",
+              original_id as "originalId",
+              original_ref_no as "originalRefNo",
+              type, sales_order_no as "salesOrderNo",
+              po_number as "poNumber", date, status, customer, customer_id as "customerId",
+              gstin, place_of_supply as "placeOfSupply", billing_address as "billingAddress", shipping_address as "shippingAddress",
+              items, subtotal, tax_total as "taxTotal", cgst_amount as "cgstAmount",
+              sgst_amount as "sgstAmount", igst_amount as "igstAmount",
+              grand_total as "grandTotal", valid_until as "validUntil", notes, currency,
+              transporter, transporter_name as "transporterName", vehicle_no as "vehicleNo",
+              date_of_supply as "dateOfSupply", eway_bill_no as "eWayBillNo", eway_bill_date as "eWayBillDate",
+              deleted_at as "deletedAt", deleted_by as "deletedBy", delete_reason as "deleteReason"
+       FROM deleted_sales_documents
+       WHERE ${whereClause}
+       ORDER BY deleted_at DESC
+       LIMIT ${params.length + 1} OFFSET ${params.length + 2}`,
+      [...params, limitNum, offset],
+    );
+
+    return {
+      success: true,
+      data: dataRes.rows,
+      meta: {
+        total,
+        page: pageNum,
+        limit: limitNum,
+        totalPages: Math.ceil(total / limitNum),
+      },
+    };
+  }
+
+  /* ---------------- RESTORE DELETED SALES DOCUMENT ---------------- */
+
+  async restoreDeletedDocument(archiveIdOrRefNo: string) {
+    const res = await this.db.query(
+      `SELECT * FROM deleted_sales_documents
+       WHERE archive_id = $1 OR original_id = $1 OR original_ref_no = $1
+       LIMIT 1`,
+      [archiveIdOrRefNo],
+    );
+
+    if (res.rows.length === 0) {
+      throw new NotFoundException({ message: `Archived document ${archiveIdOrRefNo} not found` });
+    }
+
+    const archived = res.rows[0];
+
+    // Check if the original_ref_no is already taken by an active document
+    const dupCheck = await this.db.query(
+      `SELECT id, ref_no FROM sales_documents WHERE ref_no = $1 LIMIT 1`,
+      [archived.original_ref_no],
+    );
+
+    if (dupCheck.rows.length > 0) {
+      throw new UnprocessableEntityException({
+        statusCode: 422,
+        code: "REF_NO_OCCUPIED",
+        message: `Cannot restore: Reference number ${archived.original_ref_no} is currently occupied by an active document. Please create a new document or modify reference number before restoring.`,
+      });
+    }
+
+    const client = await this.db.getClient();
+    try {
+      await client.query("BEGIN");
+
+      // Re-insert into active sales_documents
+      const statusToRestore = archived.type === "quotation" ? "PENDING" : "DRAFT";
+
+      await client.query(
+        `INSERT INTO sales_documents (
+          id, ref_no, type, sales_order_no, po_number, date, status,
+          customer, customer_id, gstin, place_of_supply, billing_address, shipping_address,
+          items, subtotal, tax_total, cgst_amount, sgst_amount, igst_amount, grand_total,
+          valid_until, notes, currency, transporter, transporter_name, vehicle_no,
+          date_of_supply, eway_bill_no, eway_bill_date, is_deleted, created_at, updated_at
+        ) VALUES (
+          $1, $2, $3, $4, $5, $6, $7,
+          $8, $9, $10, $11, $12, $13,
+          $14, $15, $16, $17, $18, $19, $20,
+          $21, $22, $23, $24, $25, $26,
+          $27, $28, $29, FALSE, NOW(), NOW()
+        )`,
+        [
+          archived.original_id,
+          archived.original_ref_no,
+          archived.type,
+          archived.sales_order_no,
+          archived.po_number,
+          archived.date,
+          statusToRestore,
+          archived.customer,
+          archived.customer_id,
+          archived.gstin,
+          archived.place_of_supply,
+          archived.billing_address,
+          archived.shipping_address,
+          typeof archived.items === "string" ? archived.items : JSON.stringify(archived.items || []),
+          archived.subtotal,
+          archived.tax_total,
+          archived.cgst_amount,
+          archived.sgst_amount,
+          archived.igst_amount,
+          archived.grand_total,
+          archived.valid_until,
+          archived.notes,
+          archived.currency,
+          typeof archived.transporter === "string" ? archived.transporter : JSON.stringify(archived.transporter || {}),
+          archived.transporter_name,
+          archived.vehicle_no,
+          archived.date_of_supply,
+          archived.eway_bill_no,
+          archived.eway_bill_date,
+        ],
+      );
+
+      // Remove from deleted_sales_documents
+      await client.query(`DELETE FROM deleted_sales_documents WHERE archive_id = $1`, [archived.archive_id]);
+
+      await client.query("COMMIT");
+
+      this.logger.log(`Restored document ${archived.original_ref_no} from archive to sales_documents.`);
+      return {
+        success: true,
+        message: `Document ${archived.original_ref_no} restored successfully.`,
+        document: {
+          id: archived.original_id,
+          refNo: archived.original_ref_no,
+          type: archived.type,
+          status: statusToRestore,
+        },
+      };
+    } catch (err) {
+      await client.query("ROLLBACK");
+      this.logger.error(`Failed to restore document ${archiveIdOrRefNo}: ${err.message}`, err.stack);
+      throw err;
+    } finally {
+      client.release();
+    }
+  }
+
+  /* ---------------- PERMANENTLY PURGE ARCHIVED DOCUMENT ---------------- */
+
+  async permanentlyDeleteDocument(archiveIdOrRefNo: string) {
+    const res = await this.db.query(
+      `DELETE FROM deleted_sales_documents
+       WHERE archive_id = $1 OR original_id = $1 OR original_ref_no = $1
+       RETURNING archive_id, original_ref_no`,
+      [archiveIdOrRefNo],
+    );
+
+    if (res.rows.length === 0) {
+      throw new NotFoundException({ message: `Archived document ${archiveIdOrRefNo} not found` });
+    }
+
+    return {
+      success: true,
+      message: `Document ${res.rows[0].original_ref_no} permanently purged from archive.`,
+    };
   }
 }

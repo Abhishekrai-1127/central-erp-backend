@@ -137,6 +137,51 @@ CREATE TABLE IF NOT EXISTS sales_documents (
 );
 
 -- 9. Purchase Records Table
+
+
+-- 8b. Deleted / Archived Sales Documents Table
+CREATE TABLE IF NOT EXISTS deleted_sales_documents (
+    archive_id VARCHAR(100) PRIMARY KEY DEFAULT ('DEL-' || SUBSTRING(gen_random_uuid()::text, 1, 8)),
+    original_id VARCHAR(100) NOT NULL,
+    original_ref_no TEXT NOT NULL,
+    type VARCHAR(50) NOT NULL DEFAULT 'invoice',
+    sales_order_no TEXT,
+    po_number TEXT,
+    date DATE,
+    status VARCHAR(50) DEFAULT 'DELETED',
+    customer TEXT NOT NULL,
+    customer_id TEXT,
+    gstin TEXT,
+    place_of_supply TEXT,
+    billing_address TEXT,
+    shipping_address TEXT,
+    items JSONB NOT NULL DEFAULT '[]'::jsonb,
+    subtotal NUMERIC(15,2) DEFAULT 0.00,
+    tax_total NUMERIC(15,2) DEFAULT 0.00,
+    cgst_amount NUMERIC(15,2) DEFAULT 0.00,
+    sgst_amount NUMERIC(15,2) DEFAULT 0.00,
+    igst_amount NUMERIC(15,2) DEFAULT 0.00,
+    grand_total NUMERIC(15,2) DEFAULT 0.00,
+    valid_until DATE,
+    notes TEXT,
+    currency TEXT DEFAULT 'INR (₹)',
+    transporter JSONB DEFAULT '{}'::jsonb,
+    transporter_name TEXT,
+    vehicle_no TEXT,
+    date_of_supply DATE,
+    eway_bill_no TEXT,
+    eway_bill_date DATE,
+    deleted_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    deleted_by TEXT DEFAULT 'Admin',
+    delete_reason TEXT,
+    document_data JSONB
+);
+
+CREATE INDEX IF NOT EXISTS idx_deleted_docs_original_ref ON deleted_sales_documents (original_ref_no);
+CREATE INDEX IF NOT EXISTS idx_deleted_docs_type ON deleted_sales_documents (type);
+CREATE INDEX IF NOT EXISTS idx_deleted_docs_deleted_at ON deleted_sales_documents (deleted_at DESC);
+
+-- 9. Purchase Records Table
 CREATE TABLE IF NOT EXISTS purchase_records (
     id VARCHAR(100) PRIMARY KEY DEFAULT ('PUR-' || SUBSTRING(gen_random_uuid()::text, 1, 8)),
     ref_no TEXT,
