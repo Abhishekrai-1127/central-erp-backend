@@ -21,9 +21,9 @@ export enum SalesDocType {
 export enum SalesDocStatus {
   DRAFT = 'DRAFT',
   PENDING = 'PENDING',
-  APPROVED = 'APPROVED',
   PAID = 'PAID',
   UNPAID = 'UNPAID',
+  READY = 'READY',
   DELIVERED = 'DELIVERED',
   CANCELLED = 'CANCELLED',
 }
