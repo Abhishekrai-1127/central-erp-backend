@@ -96,13 +96,14 @@ export class InventoryService {
   }
 
   async getProductById(id: string) {
+    const cleanId = (id || "").trim();
     const res = await this.db.query(
       `SELECT id, name, sku, category, warehouse, stock,
               min_reorder as "minReorder", unit_price as "unitPrice",
               unit, status, created_at as "createdAt"
        FROM inventory_products
-       WHERE id = $1 AND is_deleted = false`,
-      [id],
+       WHERE (id = $1 OR sku = $1 OR LOWER(sku) = LOWER($1) OR TRIM(sku) = $1 OR TRIM(id) = $1) AND is_deleted = false`,
+      [cleanId],
     );
 
     if (res.rows.length === 0) {

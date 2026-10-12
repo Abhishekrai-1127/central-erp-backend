@@ -169,6 +169,7 @@ export class SalesService {
   /* ---------------- GET SINGLE DOCUMENT BY ID ---------------- */
 
   async getDocumentById(id: string) {
+    const cleanId = (id || "").trim();
     const res = await this.db.query(
       `SELECT id, ref_no as "refNo", type, sales_order_no as "salesOrderNo",
               po_number as "poNumber", date, status, customer, customer_id as "customerId",
@@ -177,8 +178,8 @@ export class SalesService {
               sgst_amount as "sgstAmount", igst_amount as "igstAmount",
               grand_total as "grandTotal", valid_until as "validUntil", notes, currency, transporter, transporter_name as "transporterName", vehicle_no as "vehicleNo", date_of_supply as "dateOfSupply", eway_bill_no as "eWayBillNo", eway_bill_date as "eWayBillDate", created_at as "createdAt"
        FROM sales_documents
-       WHERE (id = $1 OR ref_no = $1) AND is_deleted = false`,
-      [id],
+       WHERE (id = $1 OR ref_no = $1 OR LOWER(ref_no) = LOWER($1) OR TRIM(ref_no) = $1 OR TRIM(id) = $1) AND is_deleted = false`,
+      [cleanId],
     );
 
     if (res.rows.length === 0) {
@@ -575,7 +576,7 @@ export class SalesService {
 
     if (type && type !== "all") {
       params.push(type.toLowerCase());
-      conditions.push(`LOWER(type) = ${params.length}`);
+      conditions.push(`LOWER(type) = $${params.length}`);
     }
 
     if (search && search.trim()) {
@@ -583,7 +584,7 @@ export class SalesService {
       params.push(s);
       const pIdx = params.length;
       conditions.push(
-        `(LOWER(original_ref_no) LIKE ${pIdx} OR LOWER(customer) LIKE ${pIdx} OR LOWER(COALESCE(gstin, '')) LIKE ${pIdx} OR LOWER(COALESCE(sales_order_no, '')) LIKE ${pIdx} OR LOWER(COALESCE(po_number, '')) LIKE ${pIdx})`
+        `(LOWER(original_ref_no) LIKE $${pIdx} OR LOWER(customer) LIKE $${pIdx} OR LOWER(COALESCE(gstin, '')) LIKE $${pIdx} OR LOWER(COALESCE(sales_order_no, '')) LIKE $${pIdx} OR LOWER(COALESCE(po_number, '')) LIKE $${pIdx})`
       );
     }
 
@@ -611,7 +612,7 @@ export class SalesService {
        FROM deleted_sales_documents
        WHERE ${whereClause}
        ORDER BY deleted_at DESC
-       LIMIT ${params.length + 1} OFFSET ${params.length + 2}`,
+       LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
       [...params, limitNum, offset],
     );
 
@@ -630,11 +631,12 @@ export class SalesService {
   /* ---------------- RESTORE DELETED SALES DOCUMENT ---------------- */
 
   async restoreDeletedDocument(archiveIdOrRefNo: string) {
+    const cleanId = (archiveIdOrRefNo || "").trim();
     const res = await this.db.query(
       `SELECT * FROM deleted_sales_documents
-       WHERE archive_id = $1 OR original_id = $1 OR original_ref_no = $1
+       WHERE archive_id = $1 OR original_id = $1 OR original_ref_no = $1 OR LOWER(original_ref_no) = LOWER($1) OR TRIM(original_ref_no) = $1
        LIMIT 1`,
-      [archiveIdOrRefNo],
+      [cleanId],
     );
 
     if (res.rows.length === 0) {
@@ -739,11 +741,12 @@ export class SalesService {
   /* ---------------- PERMANENTLY PURGE ARCHIVED DOCUMENT ---------------- */
 
   async permanentlyDeleteDocument(archiveIdOrRefNo: string) {
+    const cleanId = (archiveIdOrRefNo || "").trim();
     const res = await this.db.query(
       `DELETE FROM deleted_sales_documents
-       WHERE archive_id = $1 OR original_id = $1 OR original_ref_no = $1
+       WHERE archive_id = $1 OR original_id = $1 OR original_ref_no = $1 OR LOWER(original_ref_no) = LOWER($1) OR TRIM(original_ref_no) = $1
        RETURNING archive_id, original_ref_no`,
-      [archiveIdOrRefNo],
+      [cleanId],
     );
 
     if (res.rows.length === 0) {

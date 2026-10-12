@@ -141,6 +141,7 @@ export class PurchaseService {
   /* ---------------- GET PURCHASE RECORD BY ID ---------------- */
 
   async getPurchaseRecordById(id: string) {
+    const cleanId = (id || "").trim();
     const res = await this.db.query(
       `SELECT id, ref_no as "refNo", type, vendor,
               vendor_invoice_no as "vendorInvoiceNo",
@@ -151,8 +152,8 @@ export class PurchaseService {
               numeric_cost as "numericCost", location, status,
               created_at as "createdAt"
        FROM purchase_records
-       WHERE id = $1 AND is_deleted = false`,
-      [id],
+       WHERE (id = $1 OR ref_no = $1 OR LOWER(ref_no) = LOWER($1) OR TRIM(ref_no) = $1 OR TRIM(id) = $1) AND is_deleted = false`,
+      [cleanId],
     );
 
     if (res.rows.length === 0) {
@@ -281,15 +282,16 @@ export class PurchaseService {
   /* ---------------- DELETE PURCHASE RECORD (SOFT DELETE) ---------------- */
 
   async deletePurchaseRecord(id: string) {
+    const cleanId = (id || "").trim();
     const res = await this.db.query(
-      `UPDATE purchase_records SET is_deleted = true, updated_at = NOW() WHERE id = $1 AND is_deleted = false RETURNING id`,
-      [id],
+      `UPDATE purchase_records SET is_deleted = true, updated_at = NOW() WHERE (id = $1 OR ref_no = $1 OR LOWER(ref_no) = LOWER($1) OR TRIM(ref_no) = $1 OR TRIM(id) = $1) AND is_deleted = false RETURNING id, ref_no as "refNo"`,
+      [cleanId],
     );
 
     if (res.rows.length === 0) {
       throw new NotFoundException({ message: `Purchase record with ID ${id} not found` });
     }
 
-    return { message: `Purchase record ${id} soft-deleted successfully` };
+    return { message: `Purchase record ${res.rows[0].refNo || id} soft-deleted successfully` };
   }
 }
