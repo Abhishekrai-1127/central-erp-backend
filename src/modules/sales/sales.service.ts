@@ -480,9 +480,10 @@ export class SalesService {
   /* ---------------- ARCHIVE AND DELETE SALES DOCUMENT ---------------- */
 
   async deleteDocument(id: string, deletedBy = "Admin", reason = "") {
+    const cleanId = (id || "").trim();
     const docRes = await this.db.query(
-      `SELECT * FROM sales_documents WHERE (id = $1 OR ref_no = $1) LIMIT 1`,
-      [id],
+      `SELECT * FROM sales_documents WHERE (id = $1 OR ref_no = $1 OR LOWER(ref_no) = LOWER($1) OR TRIM(ref_no) = $1 OR TRIM(id) = $1) LIMIT 1`,
+      [cleanId],
     );
 
     if (docRes.rows.length === 0) {
@@ -493,7 +494,7 @@ export class SalesService {
     const client = await this.db.getClient();
     try {
       await client.query("BEGIN");
-      await client.query(
+      const insertRes = await client.query(
         `INSERT INTO deleted_sales_documents (
           original_id, original_ref_no, type, sales_order_no, po_number, date, status,
           customer, customer_id, gstin, place_of_supply, billing_address, shipping_address,
@@ -506,7 +507,7 @@ export class SalesService {
           $14, $15, $16, $17, $18, $19, $20,
           $21, $22, $23, $24, $25, $26,
           $27, $28, $29, NOW(), $30, $31, $32
-        )`,
+        ) RETURNING archive_id`,
         [
           doc.id,
           doc.ref_no,
@@ -543,16 +544,19 @@ export class SalesService {
         ],
       );
 
+      const archiveId = insertRes.rows[0]?.archive_id;
+
       // Hard-delete from active table to instantly release the ID and ref_no
       await client.query(`DELETE FROM sales_documents WHERE id = $1`, [doc.id]);
       await client.query("COMMIT");
 
-      this.logger.log(`Document ${doc.ref_no} (${doc.id}) moved to deleted_sales_documents archive.`);
+      this.logger.log(`Document ${doc.ref_no} (${doc.id}) moved to deleted_sales_documents archive (${archiveId}).`);
       return {
         success: true,
         message: `Sales document ${doc.ref_no} moved to deleted archive. Reference number is now free.`,
         originalRefNo: doc.ref_no,
         originalId: doc.id,
+        archiveId,
       };
     } catch (err) {
       await client.query("ROLLBACK");
@@ -634,7 +638,9 @@ export class SalesService {
     const cleanId = (archiveIdOrRefNo || "").trim();
     const res = await this.db.query(
       `SELECT * FROM deleted_sales_documents
-       WHERE archive_id = $1 OR original_id = $1 OR original_ref_no = $1 OR LOWER(original_ref_no) = LOWER($1) OR TRIM(original_ref_no) = $1
+       WHERE archive_id = $1 OR LOWER(archive_id) = LOWER($1) OR TRIM(archive_id) = $1
+          OR original_id = $1 OR TRIM(original_id) = $1
+          OR original_ref_no = $1 OR LOWER(original_ref_no) = LOWER($1) OR TRIM(original_ref_no) = $1
        LIMIT 1`,
       [cleanId],
     );
@@ -744,7 +750,9 @@ export class SalesService {
     const cleanId = (archiveIdOrRefNo || "").trim();
     const res = await this.db.query(
       `DELETE FROM deleted_sales_documents
-       WHERE archive_id = $1 OR original_id = $1 OR original_ref_no = $1 OR LOWER(original_ref_no) = LOWER($1) OR TRIM(original_ref_no) = $1
+       WHERE archive_id = $1 OR LOWER(archive_id) = LOWER($1) OR TRIM(archive_id) = $1
+          OR original_id = $1 OR TRIM(original_id) = $1
+          OR original_ref_no = $1 OR LOWER(original_ref_no) = LOWER($1) OR TRIM(original_ref_no) = $1
        RETURNING archive_id, original_ref_no`,
       [cleanId],
     );
