@@ -107,8 +107,8 @@ export class SalesController {
   @ApiResponse({ status: 200, description: 'Document restored successfully.' })
   @ApiResponse({ status: 404, description: 'Archived document not found.' })
   @ApiResponse({ status: 422, description: 'Original reference number is occupied.' })
-  restoreDeletedDocument(@Param('id') id: string) {
-    return this.salesService.restoreDeletedDocument(id);
+  restoreDeletedDocument(@Param('id') id: string, @Body() body?: any) {
+    return this.salesService.restoreDeletedDocument(id, body);
   }
 
   @Delete('deleted-documents/:id/permanent')
@@ -116,8 +116,8 @@ export class SalesController {
   @ApiOperation({ summary: 'Permanently purge a sales document from archive' })
   @ApiResponse({ status: 200, description: 'Document permanently purged.' })
   @ApiResponse({ status: 404, description: 'Archived document not found.' })
-  permanentlyDeleteDocument(@Param('id') id: string) {
-    return this.salesService.permanentlyDeleteDocument(id);
+  permanentlyDeleteDocument(@Param('id') id: string, @Body() body?: any) {
+    return this.salesService.permanentlyDeleteDocument(id, body);
   }
 
   @Delete('documents/:id')

@@ -634,9 +634,9 @@ export class SalesService {
 
   /* ---------------- RESTORE DELETED SALES DOCUMENT ---------------- */
 
-  async restoreDeletedDocument(archiveIdOrRefNo: string) {
+  async restoreDeletedDocument(archiveIdOrRefNo: string, fallbackData?: any) {
     const cleanId = (archiveIdOrRefNo || "").trim();
-    const res = await this.db.query(
+    let res = await this.db.query(
       `SELECT * FROM deleted_sales_documents
        WHERE archive_id = $1 OR LOWER(archive_id) = LOWER($1) OR TRIM(archive_id) = $1
           OR original_id = $1 OR TRIM(original_id) = $1
@@ -645,7 +645,43 @@ export class SalesService {
       [cleanId],
     );
 
+    // If not found, attempt finding via fallbackData refNo / originalRefNo
+    if (res.rows.length === 0 && fallbackData) {
+      const altRef = (fallbackData.originalRefNo || fallbackData.original_ref_no || fallbackData.refNo || "").trim();
+      const altId = (fallbackData.originalId || fallbackData.original_id || "").trim();
+      if (altRef || altId) {
+        res = await this.db.query(
+          `SELECT * FROM deleted_sales_documents
+           WHERE original_ref_no = $1 OR LOWER(original_ref_no) = LOWER($1) OR TRIM(original_ref_no) = $1
+              OR original_id = $2 OR archive_id = $2
+           LIMIT 1`,
+          [altRef || altId, altId || altRef],
+        );
+      }
+    }
+
     if (res.rows.length === 0) {
+      // Self-heal: If document was deleted offline/locally, restore directly into sales_documents
+      if (fallbackData && (fallbackData.customer || fallbackData.items || fallbackData.refNo)) {
+        const targetRef = (fallbackData.originalRefNo || fallbackData.original_ref_no || fallbackData.refNo || cleanId).trim();
+        const createPayload: any = {
+          refNo: targetRef,
+          type: fallbackData.type || (targetRef.startsWith("SO-") ? SalesDocType.SALES_ORDER : targetRef.startsWith("QT-") ? SalesDocType.QUOTATION : SalesDocType.INVOICE),
+          customer: fallbackData.customer || "General Customer",
+          status: (fallbackData.type === "quotation" || fallbackData.type === "sales_order") ? SalesDocStatus.PENDING : SalesDocStatus.DRAFT,
+          ...fallbackData,
+        };
+        try {
+          const restored = await this.createDocument(createPayload);
+          return {
+            success: true,
+            message: `Document ${targetRef} restored successfully.`,
+            document: restored,
+          };
+        } catch (createErr) {
+          if (createErr instanceof UnprocessableEntityException) throw createErr;
+        }
+      }
       throw new NotFoundException({ message: `Archived document ${archiveIdOrRefNo} not found` });
     }
 
@@ -746,9 +782,9 @@ export class SalesService {
 
   /* ---------------- PERMANENTLY PURGE ARCHIVED DOCUMENT ---------------- */
 
-  async permanentlyDeleteDocument(archiveIdOrRefNo: string) {
+  async permanentlyDeleteDocument(archiveIdOrRefNo: string, fallbackData?: any) {
     const cleanId = (archiveIdOrRefNo || "").trim();
-    const res = await this.db.query(
+    let res = await this.db.query(
       `DELETE FROM deleted_sales_documents
        WHERE archive_id = $1 OR LOWER(archive_id) = LOWER($1) OR TRIM(archive_id) = $1
           OR original_id = $1 OR TRIM(original_id) = $1
@@ -757,13 +793,25 @@ export class SalesService {
       [cleanId],
     );
 
-    if (res.rows.length === 0) {
-      throw new NotFoundException({ message: `Archived document ${archiveIdOrRefNo} not found` });
+    if (res.rows.length === 0 && fallbackData) {
+      const altRef = (fallbackData.originalRefNo || fallbackData.original_ref_no || fallbackData.refNo || "").trim();
+      const altId = (fallbackData.originalId || fallbackData.original_id || "").trim();
+      if (altRef || altId) {
+        res = await this.db.query(
+          `DELETE FROM deleted_sales_documents
+           WHERE original_ref_no = $1 OR LOWER(original_ref_no) = LOWER($1) OR TRIM(original_ref_no) = $1
+              OR original_id = $2 OR archive_id = $2
+           RETURNING archive_id, original_ref_no`,
+          [altRef || altId, altId || altRef],
+        );
+      }
     }
 
+    // Idempotent: If document is already gone from archive, return success
+    const purgedName = res.rows[0]?.original_ref_no || cleanId;
     return {
       success: true,
-      message: `Document ${res.rows[0].original_ref_no} permanently purged from archive.`,
+      message: `Document ${purgedName} permanently purged from archive.`,
     };
   }
 }
