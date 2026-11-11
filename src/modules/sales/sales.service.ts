@@ -10,6 +10,7 @@ import {
   CreateSalesDocDto,
   UpdateSalesDocDto,
   SalesDocType,
+  SalesDocStatus,
 } from './dto/sales.dto';
 
 @Injectable()
@@ -665,11 +666,22 @@ export class SalesService {
       if (fallbackData && (fallbackData.customer || fallbackData.items || fallbackData.refNo)) {
         const targetRef = (fallbackData.originalRefNo || fallbackData.original_ref_no || fallbackData.refNo || cleanId).trim();
         const createPayload: any = {
-          refNo: targetRef,
-          type: fallbackData.type || (targetRef.startsWith("SO-") ? SalesDocType.SALES_ORDER : targetRef.startsWith("QT-") ? SalesDocType.QUOTATION : SalesDocType.INVOICE),
-          customer: fallbackData.customer || "General Customer",
-          status: (fallbackData.type === "quotation" || fallbackData.type === "sales_order") ? SalesDocStatus.PENDING : SalesDocStatus.DRAFT,
           ...fallbackData,
+          refNo: targetRef,
+          type:
+            fallbackData.type ||
+            (targetRef.startsWith("SO-")
+              ? SalesDocType.SALES_ORDER
+              : targetRef.startsWith("QT-")
+                ? SalesDocType.QUOTATION
+                : SalesDocType.INVOICE),
+          customer: fallbackData.customer || "General Customer",
+          status:
+            fallbackData.status ||
+            (fallbackData.type === "quotation" ||
+            fallbackData.type === "sales_order"
+              ? SalesDocStatus.PENDING
+              : SalesDocStatus.DRAFT),
         };
         try {
           const restored = await this.createDocument(createPayload);
